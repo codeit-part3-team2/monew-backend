@@ -1,0 +1,187 @@
+### 🔹 Java & Spring Boot 공통 ###
+*.class
+*.log
+*.ctxt
+*.jar
+*.war
+*.ear
+
+# Spring Boot package
+!/gradle/wrapper/gradle-wrapper.jar
+
+# Application logs
+logs/
+*.log
+*.out
+
+# PID files
+*.pid
+*.seed
+
+# Spring specific
+.springBeans
+.sts4-cache/
+BOOT-INF/
+META-INF/
+classes/
+bin/
+out/
+build/
+
+# Maven (혹시 나중에 혼용 대비)
+target/
+
+### 🔹 Gradle ###
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+gradle-app.setting
+
+# Local gradle properties
+gradle.properties
+.gradle-build/
+
+# Gradle caches
+.gradle/
+**/build/
+**/out/
+!gradle/wrapper/gradle-wrapper.jar
+
+### 🔹 IntelliJ IDEA ###
+.idea/
+*.iml
+*.ipr
+*.iws
+.idea_modules/
+*.swp
+*.swo
+.DS_Store
+.vscode/
+
+# IntelliJ specific files
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/dataSources/
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/gradle.xml
+.idea/**/libraries/
+.idea/**/assetWizardSettings.xml
+.idea/**/targetSchemas.xml
+.idea/**/modules.xml
+
+# JetBrains Fleet
+.fleet/
+
+### 🔹 OS / System files ###
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+Icon?
+
+### 🔹 Logs / Reports ###
+*.log
+*.err
+*.out
+hs_err_pid*
+replay_pid*
+
+### 🔹 Environment files ###
+.env
+.env.*
+!.env.example
+*.local.env
+*.secret
+*.envrc
+
+### 🔹 Docker ###
+/docker-compose.override.yml
+**/Dockerfile.local
+**/Dockerfile.dev
+**/.docker/
+**/tmp/
+**/volumes/
+**/db-data/
+
+# Ignore Docker build cache
+**/.docker-cache/
+**/.dockerignore
+
+### 🔹 Node (혹시 프론트엔드 모듈 추가 시 대비) ###
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+package-lock.json
+yarn.lock
+
+### 🔹 OS 별 예외 ###
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+### 🔹 Test / Reports ###
+test-output/
+reports/
+jacoco.exec
+*.ec
+*.exec
+*.hprof
+
+### 🔹 IDE Plugins ###
+.vscode/
+.idea/
+*.iml
+
+### 🔹 Multi-Module (monew 전용) ###
+/monew-api/build/
+/monew-batch/build/
+/monew-monitor/build/
+/monew-api/out/
+/monew-batch/out/
+/monew-monitor/out/
+/monew-api/.gradle/
+/monew-batch/.gradle/
+/monew-monitor/.gradle/
+
+# Individual application logs
+monew-api/logs/
+monew-batch/logs/
+monew-monitor/logs/
+
+### 🔹 Temporary Files ###
+tmp/
+temp/
+*.tmp
+*.bak
+*.swp
+*.swo
+
+### 🔹 CI/CD ###
+# GitHub Actions generated files
+.github/workflows/*.tmp
+.github/workflows/*.bak
+.github/workflows/*.log
+
+# Artifact directories
+dist/
+release/
+build/libs/
+*.tar.gz
+*.zip
+*.jar.original
+*.war.original

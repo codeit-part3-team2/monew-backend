@@ -1,0 +1,5 @@
+rootProject.name = 'monew-backend'
+
+include 'monew-api'
+include 'monew-batch'
+include 'monew-monitor'
