@@ -8,6 +8,20 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
+  sql:
+    init:
+      mode: always  # 수동으로 제어하려면 never, 자동 실행하려면 always
+      schema-locations: classpath:db/schema.sql
+      data-locations:
+        - classpath:db/data/data-users.sql
+        - classpath:db/data/data-interests.sql
+        - classpath:db/data/data-articles.sql
+        - classpath:db/data/data-article_views.sql
+        - classpath:db/data/data-comments.sql
+        - classpath:db/data/data-notifications.sql
+        - classpath:db/data/data-subscribes.sql
+      continue-on-error: false
+
   jpa:
     hibernate:
       ddl-auto: validate

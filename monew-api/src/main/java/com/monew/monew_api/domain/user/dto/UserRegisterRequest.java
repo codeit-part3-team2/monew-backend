@@ -20,7 +20,7 @@ public class UserRegisterRequest {
     private String nickname;
 
     @NotBlank(message = "비밀번호는 필수입니다.")
-    @Size(min = 8, max = 100, message = "비밀번호는 8자 이상 100자 이하여야 합니다.")
+    @Size(min = 1, max = 100, message = "비밀번호는 100자 이하여야 합니다.")
     private String password;
 
     public UserRegisterRequest(String email, String nickname, String password) {
