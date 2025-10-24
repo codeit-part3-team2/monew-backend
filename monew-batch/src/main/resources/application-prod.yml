@@ -1,3 +1,6 @@
+server:
+  port: 8081
+
 spring:
   datasource:
     url: ${DB_URL}
@@ -14,7 +17,7 @@ spring:
     jdbc:
       initialize-schema: never
     job:
-      enabled: true
+      enabled: false
 
   task:
     scheduling:
@@ -25,14 +28,24 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,metrics,prometheus
+        include: health, info, metrics, prometheus, beans
   endpoint:
     health:
-      show-details: never
+      show-details: when_authorized  # 인증된 요청만 상세 노출
+      probes:
+        enabled: true                # ECS/K8s 헬스체크용
   prometheus:
     metrics:
       export:
         enabled: true
+  metrics:
+    tags:
+      application: monew-batch       # prometheus 필터 태그로 사용됨
+    enable:
+      jvm: true
+      logback: true
+      process: true
+      spring.batch: true
 
 logging:
   level:
@@ -46,6 +59,3 @@ aws:
     access-key: ${AWS_ACCESS_KEY}
     secret-key: ${AWS_SECRET_KEY}
     bucket: monew-backup
-
-server:
-  port: ${SERVER_PORT:8081}

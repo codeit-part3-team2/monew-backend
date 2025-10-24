@@ -1,3 +1,6 @@
+server:
+  port: 8081
+
 spring:
   datasource:
     url: ${DB_URL}
@@ -25,14 +28,23 @@ spring:
       continue-on-error: true
       schema-locations: classpath:org/springframework/batch/core/schema-postgresql.sql
 
-# 스케줄러 풀
   task:
     scheduling:
       pool:
         size: 4
 
-server:
-  port: 8081
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info, metrics, prometheus, env
+  endpoint:
+    health:
+      show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 logging:
   level:
