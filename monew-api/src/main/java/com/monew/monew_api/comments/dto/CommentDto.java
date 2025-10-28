@@ -10,6 +10,7 @@ public record CommentDto(
 	String content,
 	int likeCount,
 	boolean likedByMe,
+	boolean isMyComment,
 	String createdAt
 ) {
 
@@ -22,8 +23,24 @@ public record CommentDto(
 			comment.getContent(),
 			comment.getLikeCount(),
 			likedByMe,
+			false,
 			comment.getCreatedAt().toString()
 		);
 	}
 
+	public static CommentDto from(Comment comment, boolean likedByMe, Long requestUserId) {
+		boolean isMyComment = comment.getUser().getId().equals(requestUserId);
+
+		return new CommentDto(
+			String.valueOf(comment.getId()),
+			String.valueOf(comment.getArticle().getId()),
+			String.valueOf(comment.getUser().getId()),
+			comment.getUser().getNickname(),
+			comment.getContent(),
+			comment.getLikeCount(),
+			likedByMe,
+			isMyComment,
+			comment.getCreatedAt().toString()
+		);
+	}
 }

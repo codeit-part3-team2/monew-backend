@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import com.monew.monew_api.comments.entity.Comment;
 import com.monew.monew_api.comments.entity.QComment;
 import com.monew.monew_api.comments.repository.CommentRepositoryCustom;
-import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 
@@ -25,51 +25,110 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 	public List<Comment> findPageByArticleIdOrderByCreatedAtDesc(Long articleId, Long cursorId,
 		LocalDateTime cursorCreatedAt, int limit) {
 
-		BooleanExpression byArticle = articleIdEq(articleId);
-		BooleanExpression afterCursor = buildCreatedAtCursor(cursorId, cursorCreatedAt);
+		QComment c = QComment.comment;
+
+		BooleanBuilder where = new BooleanBuilder();
+		if (articleId != null) {
+			where.and(c.article.id.eq(articleId));
+		}
+
+		BooleanExpression cursorExpr = buildCreatedAtCursor(c, cursorId, cursorCreatedAt);
+		if (cursorExpr != null) {
+			where.and(cursorExpr);
+		}
 
 		return jpaQueryFactory
 			.selectFrom(c)
-			.leftJoin(c.user).fetchJoin()
-			.leftJoin(c.article).fetchJoin()
-			.where(byArticle, afterCursor)
-			.orderBy(c.createdAt.desc(), c.id.desc())
-			.limit(limit + 1)
+			.where(where)
+			.orderBy(
+				c.createdAt.desc(),
+				c.id.desc()
+			)
+			.limit(limit + 1L)
 			.fetch();
 	}
 
 	@Override
 	public List<Comment> findPageByArticleIdOrderByLikeCountDesc(Long articleId, Long cursorId, Integer cursorLikeCount,
 		int limit) {
-		BooleanExpression byArticle = articleIdEq(articleId);
-		BooleanExpression afterCursor = buildLikeCountCursor(cursorId, cursorLikeCount);
+
+		QComment c = QComment.comment;
+
+		BooleanBuilder where = new BooleanBuilder();
+		if (articleId != null) {
+			where.and(c.article.id.eq(articleId));
+		}
+
+		BooleanExpression cursorExpr = buildLikeCountCursor(c, cursorId, cursorLikeCount);
+		if (cursorExpr != null) {
+			where.and(cursorExpr);
+		}
 
 		return jpaQueryFactory
 			.selectFrom(c)
-			.leftJoin(c.user).fetchJoin()
-			.leftJoin(c.article).fetchJoin()
-			.where(byArticle, afterCursor)
-			.orderBy(c.likeCount.desc(), c.id.desc())
-			.limit(limit + 1)
+			.where(where)
+			.orderBy(
+				c.likeCount.desc(),
+				c.id.desc()
+			)
+			.limit(limit + 1L)
 			.fetch();
+
 	}
 
 	private BooleanExpression articleIdEq(Long articleId) {
 		return articleId != null ? c.article.id.eq(articleId) : null;
 	}
 
-	private BooleanExpression buildCreatedAtCursor(Long cursorId, LocalDateTime cursorCreatedAt) {
-		if (cursorId == null || cursorCreatedAt == null) return null;
+
+
+	private BooleanExpression buildCreatedAtCursor(
+		QComment c,
+		Long cursorId,
+		LocalDateTime cursorCreatedAt
+	) {
+		if (cursorId == null && cursorCreatedAt == null) {
+			return null;
+		}
+
+		if (cursorId != null && cursorCreatedAt == null) {
+			return c.id.lt(cursorId);
+		}
+
+		if (cursorId == null && cursorCreatedAt != null) {
+
+			return c.createdAt.lt(cursorCreatedAt);
+		}
 
 		return c.createdAt.lt(cursorCreatedAt)
-			.or(c.createdAt.eq(cursorCreatedAt).and(c.id.lt(cursorId)));
+			.or(
+				c.createdAt.eq(cursorCreatedAt)
+					.and(c.id.lt(cursorId))
+			);
 	}
 
-	private BooleanExpression buildLikeCountCursor(Long cursorId, Integer cursorLikeCount) {
-		if (cursorId == null || cursorLikeCount == null) return null;
+	private BooleanExpression buildLikeCountCursor(
+		QComment c,
+		Long cursorId,
+		Integer cursorLikeCount
+	) {
+		if (cursorId == null && cursorLikeCount == null) {
+			return null;
+		}
+
+		if (cursorLikeCount != null && cursorId == null) {
+			return c.likeCount.lt(cursorLikeCount);
+		}
+
+		if (cursorLikeCount == null && cursorId != null) {
+			return c.id.lt(cursorId);
+		}
 
 		return c.likeCount.lt(cursorLikeCount)
-			.or(c.likeCount.eq(cursorLikeCount).and(c.id.lt(cursorId)));
+			.or(
+				c.likeCount.eq(cursorLikeCount)
+					.and(c.id.lt(cursorId))
+			);
 	}
 
 }

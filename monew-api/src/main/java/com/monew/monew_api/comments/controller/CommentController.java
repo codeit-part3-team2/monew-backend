@@ -22,9 +22,6 @@ import com.monew.monew_api.comments.dto.CommentRegisterRequest;
 import com.monew.monew_api.comments.dto.CommentUpdateRequest;
 import com.monew.monew_api.comments.dto.CursorPageResponseCommentDto;
 import com.monew.monew_api.comments.service.CommentService;
-import com.monew.monew_api.common.exception.comment.CommentInvalidArticleIdException;
-import com.monew.monew_api.common.exception.comment.CommentInvalidUserIdException;
-import com.monew.monew_api.common.exception.comment.CommentNotFoundException;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -39,17 +36,14 @@ public class CommentController {
 
 	@GetMapping
 	public ResponseEntity<CursorPageResponseCommentDto> findAll(
-		@RequestHeader("Monew-Request-User-ID") String userIdHeader,
-		@RequestParam(required = false) String articleId,
+		@RequestHeader("Monew-Request-User-ID") Long userIdHeader,
+		@RequestParam(required = false) Long articleId,
 		@RequestParam String orderBy,
 		@RequestParam String direction,
 		@RequestParam(required = false) String cursor,
 		@RequestParam(required = false) String after,
 		@RequestParam int limit
 	) {
-		Long aid = parseNullableArticleId(articleId);
-		Long uid = parseUserId(userIdHeader);
-
 		Long cursorId = null;
 		LocalDateTime cursorCreatedAt = parseNullableDateTime(after);
 		Integer cursorLikeCount = null;
@@ -69,96 +63,61 @@ public class CommentController {
 		}
 
 		CursorPageResponseCommentDto page =
-			commentService.findAll(aid, limit, orderBy, cursorId, cursorCreatedAt, cursorLikeCount, uid);
+			commentService.findAll(articleId, limit, orderBy, cursorId, cursorCreatedAt, cursorLikeCount, userIdHeader);
 
 		return ResponseEntity.ok(page);
 	}
 
 	@PostMapping
 	public ResponseEntity<CommentDto> register(
-		@RequestHeader("Monew-Request-User-ID") String userIdHeader,
 		@Valid @RequestBody CommentRegisterRequest request
 	) {
-		CommentRegisterRequest fixed = request.withUserId(userIdHeader);
-		CommentDto dto = commentService.register(fixed);
+		CommentDto dto = commentService.register(request);
 		return ResponseEntity.status(HttpStatus.CREATED).body(dto);
 	}
 
 	@PatchMapping("/{commentId}")
 	public ResponseEntity<CommentDto> update(
-		@RequestHeader("Monew-Request-User-ID") String userIdHeader,
-		@PathVariable String commentId,
+		@RequestHeader("Monew-Request-User-ID") Long userIdHeader,
+		@PathVariable Long commentId,
 		@Valid @RequestBody CommentUpdateRequest request
 	) {
-		Long userId = parseUserId(userIdHeader);
-		Long cid = parseCommentId(commentId);
-		CommentDto dto = commentService.update(userId, cid, request);
+		CommentDto dto = commentService.update(userIdHeader, commentId, request);
 		return ResponseEntity.ok(dto);
 	}
 
 	@DeleteMapping("/{commentId}")
 	public ResponseEntity<Void> delete(
-		@RequestHeader("Monew-Request-User-ID") String userIdHeader,
-		@PathVariable String commentId
+		// @RequestHeader("Monew-Request-User-ID") Long userIdHeader,
+		@PathVariable Long commentId
 	) {
-		Long userId = parseUserId(userIdHeader);
-		Long cid = parseCommentId(commentId);
-		commentService.delete(userId, cid);
+		// commentService.delete(userIdHeader, commentId);
+		commentService.delete(commentId);
 		return ResponseEntity.noContent().build();
 	}
 
 	@PostMapping("/{commentId}/comment-likes")
 	public ResponseEntity<CommentLikeDto> like(
-		@RequestHeader("Monew-Request-User-ID") String userIdHeader,
-		@PathVariable String commentId
+		@RequestHeader("Monew-Request-User-ID") Long userIdHeader,
+		@PathVariable Long commentId
 	) {
-		Long userId = parseUserId(userIdHeader);
-		Long cid = parseCommentId(commentId);
-		CommentLikeDto dto = commentService.like(userId, cid);
+		CommentLikeDto dto = commentService.like(userIdHeader, commentId);
 		return ResponseEntity.ok(dto);
 	}
 
 	@DeleteMapping("/{commentId}/comment-likes")
 	public ResponseEntity<Void> dislike(
-		@RequestHeader("Monew-Request-User-ID") String userIdHeader,
-		@PathVariable String commentId
+		@RequestHeader("Monew-Request-User-ID") Long userIdHeader,
+		@PathVariable Long commentId
 	) {
-		Long userId = parseUserId(userIdHeader);
-		Long cid = parseCommentId(commentId);
-		commentService.dislike(userId, cid);
+		commentService.dislike(userIdHeader, commentId);
 		return ResponseEntity.noContent().build();
 	}
 
 	@DeleteMapping("/{commentId}/hard")
-	public ResponseEntity<Void> hardDelete(@PathVariable String commentId) {
-		Long cid = parseCommentId(commentId);
-		commentService.hardDelete(cid);
+	public ResponseEntity<Void> hardDelete(@PathVariable Long commentId) {
+		commentService.hardDelete(commentId);
 		return ResponseEntity.noContent().build();
-	}
-
-	private Long parseUserId(String userId) {
-		try {
-			return Long.parseLong(userId);
-		} catch (Exception e) {
-			throw new CommentInvalidUserIdException(userId);
-		}
-	}
-
-	private Long parseCommentId(String commentId) {
-		try {
-			return Long.parseLong(commentId);
-		} catch (Exception e) {
-			throw new CommentNotFoundException();
-		}
-	}
-
-	private Long parseNullableArticleId(String articleId) {
-		if (articleId == null || articleId.isBlank()) return null;
-		try {
-			return Long.parseLong(articleId);
-		} catch (Exception e) {
-			throw new CommentInvalidArticleIdException(articleId);
-		}
 	}
 
 	private LocalDateTime parseNullableDateTime(String text) {
