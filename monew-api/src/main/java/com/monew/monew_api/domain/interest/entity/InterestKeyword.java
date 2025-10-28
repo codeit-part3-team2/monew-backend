@@ -16,7 +16,7 @@ import lombok.ToString;
 
 
 @Entity
-@Table(name = "interests_keywords")
+@Table(name = "interest_keywords")
 @Getter @Setter @ToString @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,19 +32,6 @@ public class InterestKeyword extends BaseTimeEntity {
 
 public static InterestKeyword create(Interest interest, Keyword keyword) {
   return new InterestKeyword(interest, keyword);
-  }
-
-  @Override
-  public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof InterestKeyword that)) return false;
-    return Objects.equals(interest, that.interest)
-        && Objects.equals(keyword, that.keyword);
-  }
-
-  @Override
-  public int hashCode() {
-    return Objects.hash(interest, keyword);
   }
 
 }
