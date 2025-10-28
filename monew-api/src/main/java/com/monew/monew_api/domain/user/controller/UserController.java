@@ -29,7 +29,9 @@ public class UserController {
         log.info("[API 요청] POST /api/users/login - 로그인 요청, 이메일: {}", request.getEmail());
         UserDto response = userService.login(request);
         log.info("[API 응답] POST /api/users/login - 로그인 성공, 사용자 ID: {}", response.getId());
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok()
+                .header("MoNew-Request-User-ID", response.getId().toString())
+                .body(response);
     }
 
     @PatchMapping("/api/users/{userId}")
