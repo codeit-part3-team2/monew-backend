@@ -14,7 +14,7 @@ import lombok.Setter;
 @NoArgsConstructor
 @Entity
 @Table(
-        name = "interests_articles",
+        name = "interest_articles",
         uniqueConstraints = @UniqueConstraint(columnNames = {"article_id", "interest_id"})
 )
 public class InterestArticles extends BaseIdEntity {
