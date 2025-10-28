@@ -30,4 +30,8 @@ public class Notification extends BaseTimeEntity {
 
     @Column(nullable = false)
     private boolean confirmed;
+
+    public void confirm() {
+        this.confirmed = true;
+    }
 }
