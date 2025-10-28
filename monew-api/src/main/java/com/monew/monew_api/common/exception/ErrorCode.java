@@ -18,6 +18,7 @@ public enum ErrorCode {
 
     // 뉴스 기사 - ARTICLE
     ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "뉴스 기사 정보를 찾을 수 없습니다."),
+    ARTICLE_ALREADY_VIEWED(HttpStatus.CONFLICT.value(), "이미 조회한 기사입니다."),
 
     // 댓글 - COMMENT
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "댓글 정보를 찾을 수 없습니다."),
