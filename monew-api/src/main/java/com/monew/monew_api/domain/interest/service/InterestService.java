@@ -4,14 +4,12 @@ import com.monew.monew_api.domain.interest.dto.request.CursorPageRequestInterest
 import com.monew.monew_api.domain.interest.dto.request.InterestRegisterRequest;
 import com.monew.monew_api.domain.interest.dto.request.InterestUpdateRequest;
 import com.monew.monew_api.domain.interest.dto.response.CursorPageResponseInterestDto;
-import com.monew.monew_api.domain.interest.dto.response.InterestDto;
-import com.monew.monew_api.domain.interest.entity.Interest;
-import org.springframework.data.domain.Slice;
+import com.monew.monew_api.domain.interest.dto.response.InterestDto;;
 
 public interface InterestService {
 
   InterestDto createInterest(InterestRegisterRequest request);
-  CursorPageResponseInterestDto<InterestDto> getInterests(Long userId, CursorPageRequestInterestDto cursorRequest);
+  CursorPageResponseInterestDto getInterests(Long userId, CursorPageRequestInterestDto cursorRequest);
   InterestDto updateInterestKeywords(InterestUpdateRequest request, Long interestId, Long userId);
   void deleteInterest(Long interestId);
   // 구독 관련 메서드 추후에 구현 예정!!!
