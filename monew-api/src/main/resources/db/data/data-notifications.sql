@@ -1,22 +1,48 @@
 --알림(Notification) 도메인
 -- =========================
-INSERT INTO notifications (user_id, content, resource_type, resource_id, confirmed) VALUES
-(1, '구독 관심사에 새 기사 등록', 'article', 1, FALSE),
-(1, '내 댓글에 새 좋아요',        'comment', 1, TRUE),
-(2, '팔로우 관심사에 새 기사',     'article', 2, FALSE),
-(3, '새 댓글 알림',               'comment', 3, TRUE),
-(5, '관심 기사 업데이트',          'article', 5, TRUE),
-(1,'새 댓글이 달렸습니다.','comment',10, FALSE),
-(4,'환경 소식 알림','article',4,TRUE),
-(5,'스타트업 소식','article',5,FALSE),
-(6,'금융 뉴스 도착','article',6,FALSE),
-(7,'정치 관련 소식','article',7,TRUE),
-(8,'국제 이슈 속보','article',8,FALSE),
-(9,'스포츠 뉴스 업데이트','article',9,TRUE),
-(10,'문화 기사 알림','article',10,FALSE),
-(11,'기술 관련 업데이트','article',11,TRUE),
-(12,'자동차 산업 소식','article',12,FALSE),
-(13,'여행 기사 등록','article',13,TRUE),
-(14,'건강 정보 도착','article',14,FALSE),
-(15,'교육 소식 알림','article',15,TRUE)
-;
+INSERT INTO notifications (user_id, content, resource_type, resource_id, confirmed)
+VALUES (1, '구독 관심사에 새 기사 등록', 'interest', 1, FALSE),
+       (1, '내 댓글에 새 좋아요', 'comment', 1, TRUE),
+       (2, '팔로우 관심사에 새 기사', 'interest', 2, FALSE),
+       (3, '새 댓글 알림', 'comment', 3, TRUE),
+       (5, '관심 기사 업데이트', 'interest', 5, TRUE),
+       (1, '새 댓글이 달렸습니다.', 'comment', 10, FALSE),
+       (4, '환경 소식 알림', 'interest', 4, TRUE),
+       (5, '스타트업 소식', 'interest', 5, FALSE),
+       (6, '금융 뉴스 도착', 'interest', 6, FALSE),
+       (7, '정치 관련 소식', 'interest', 7, TRUE),
+       (8, '국제 이슈 속보', 'interest', 8, FALSE),
+       (9, '스포츠 뉴스 업데이트', 'interest', 9, TRUE),
+       (10, '문화 기사 알림', 'interest', 10, FALSE),
+       (11, '기술 관련 업데이트', 'interest', 11, TRUE),
+       (12, '자동차 산업 소식', 'interest', 12, FALSE),
+       (13, '여행 기사 등록', 'interest', 13, TRUE),
+       (14, '건강 정보 도착', 'interest', 14, FALSE),
+       (15, '교육 소식 알림', 'interest', 15, TRUE);
+
+INSERT INTO notifications
+(user_id, content, resource_type, resource_id, confirmed, created_at, updated_at)
+VALUES
+    -- 페이징 테스트용. user_id = 1 : 미확인 알림 16개
+    (1, 'user 1 - 테스트 알림 1 (미확인)', 'interest', 1, FALSE, '2025-10-28 10:00:00', '2025-10-28 10:00:00'),
+    (1, 'user 1 - 테스트 알림 2 (미확인)', 'comment', 1, FALSE, '2025-10-28 09:00:00', '2025-10-28 09:00:00'),
+    (1, 'user 1 - 테스트 알림 3 (미확인)', 'interest', 2, FALSE, '2025-10-28 08:00:00', '2025-10-28 08:00:00'),
+    (1, 'user 1 - 테스트 알림 4 (미확인)', 'comment', 2, FALSE, '2025-10-28 07:00:00', '2025-10-28 07:00:00'),
+    (1, 'user 1 - 테스트 알림 5 (미확인)', 'interest', 3, FALSE, '2025-10-28 06:00:00', '2025-10-28 06:00:00'),
+    (1, 'user 1 - 테스트 알림 6 (미확인)', 'interest', 1, FALSE, '2025-10-28 05:00:00', '2025-10-28 05:00:00'),
+    (1, 'user 1 - 테스트 알림 7 (미확인)', 'comment', 3, FALSE, '2025-10-28 04:00:00', '2025-10-28 04:00:00'),
+    (1, 'user 1 - 테스트 알림 8 (미확인)', 'interest', 4, FALSE, '2025-10-28 03:00:00', '2025-10-28 03:00:00'),
+    (1, 'user 1 - 테스트 알림 9 (미확인)', 'comment', 4, FALSE, '2025-10-28 02:00:00', '2025-10-28 02:00:00'),
+    (1, 'user 1 - 테스트 알림 10 (미확인)', 'interest', 5, FALSE, '2025-10-28 01:00:00', '2025-10-28 01:00:00'),
+    (1, 'user 1 - 테스트 알림 11 (미확인)', 'interest', 1, FALSE, '2025-10-27 23:00:00', '2025-10-27 23:00:00'),
+    (1, 'user 1 - 테스트 알림 12 (미확인)', 'comment', 5, FALSE, '2025-10-27 22:00:00', '2025-10-27 22:00:00'),
+    (1, 'user 1 - 테스트 알림 13 (미확인)', 'interest', 2, FALSE, '2025-10-27 21:00:00', '2025-10-27 21:00:00'),
+    (1, 'user 1 - 테스트 알림 14 (미확인)', 'comment', 6, FALSE, '2025-10-27 20:00:00', '2025-10-27 20:00:00'),
+    (1, 'user 1 - 테스트 알림 15 (미확인)', 'interest', 6, FALSE, '2025-10-27 19:00:00', '2025-10-27 19:00:00'),
+    (1, 'user 1 - 테스트 알림 16 (미확인)', 'interest', 7, FALSE, '2025-10-27 18:00:00', '2025-10-27 18:00:00'),
+
+    -- user_id = 1 : 확인된 알람 4개
+    (1, 'user 1 - 테스트 알림 17 (확인됨)', 'comment', 7, TRUE, '2025-10-27 17:00:00', '2025-10-27 18:00:00'),
+    (1, 'user 1 - 테스트 알림 18 (확인됨)', 'interest', 8, TRUE, '2025-10-27 16:00:00', '2025-10-27 17:00:00'),
+    (1, 'user 1 - 테스트 알림 19 (확인됨)', 'comment', 8, TRUE, '2025-10-27 15:00:00', '2025-10-27 15:30:00'),
+    (1, 'user 1 - 테스트 알림 20 (확인됨)', 'interest', 9, TRUE, '2025-10-27 14:00:00', '2025-10-27 14:20:00');

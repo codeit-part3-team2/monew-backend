@@ -13,7 +13,7 @@ INSERT INTO keywords (keyword) VALUES
 ('패션트렌드'), ('음악시장'), ('영화산업'),
 ('환경정책'), ('금융시장'), ('스타트업'), ('부동산세제');
 
-INSERT INTO interests_keywords (interest_id, keyword_id) VALUES
+INSERT INTO interest_keywords (interest_id, keyword_id) VALUES
 (1,1), (1,2), (1,7), (1,14),
 (2,1), (2,2), (2,3), (2,4), (2,8),
 (3,1), (3,2), (3,3), (3,4), (3,5), (3,6), (3,10), (3,14), (3,15), (3,19),

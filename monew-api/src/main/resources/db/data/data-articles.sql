@@ -23,7 +23,7 @@ INSERT INTO articles (source, source_url, title, publish_date, summary, comment_
     ('Naver','https://n.news.naver.com/mnews/article/421/0008526173','서버실 갇힌 AI는 끝, 산업 현장 뛰어든 피지컬 AI', NOW() - INTERVAL '18 days','제조·물류 등 현장에서 실물 작업하는 AI 본격화',4,210);
 
 -- =========================
-INSERT INTO interests_articles (interest_id, article_id) VALUES
+INSERT INTO interest_articles (interest_id, article_id) VALUES
     (1,1), (1,4), (1,5),
     (2,2), (2,14), (2,10), (2,1), (2,15),
     (3,3),
