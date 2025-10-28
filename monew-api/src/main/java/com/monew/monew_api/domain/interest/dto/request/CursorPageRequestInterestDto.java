@@ -1,0 +1,17 @@
+package com.monew.monew_api.domain.interest.dto.request;
+
+import com.monew.monew_api.domain.interest.dto.InterestSortBy;
+import jakarta.validation.constraints.NotNull;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import org.springframework.data.domain.Sort.Direction;
+
+public record CursorPageRequestInterestDto(
+
+    String keyword, // 검색어(관심사, 키워드)
+    @NotNull InterestSortBy sortBy,
+    @NotNull Direction direction, // 정렬 방향 (ASC, DESC)
+    String cursor, // 커서 값
+    LocalDateTime after, //
+    @NotNull int limit // 커서 페이지 크기
+) {}
