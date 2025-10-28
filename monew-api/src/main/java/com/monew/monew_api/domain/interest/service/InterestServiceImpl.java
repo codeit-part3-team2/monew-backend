@@ -81,10 +81,9 @@ public class InterestServiceImpl implements InterestService {
     return response;
   }
 
-
   @Override
   @Transactional(readOnly = true)
-  public CursorPageResponseInterestDto<InterestDto> getInterests(Long userId,
+  public CursorPageResponseInterestDto getInterests(Long userId,
       CursorPageRequestInterestDto request) {
 
     log.info("관심사 조회 요청 : {}", request);
@@ -133,7 +132,7 @@ public class InterestServiceImpl implements InterestService {
       nextAfter = last.getCreatedAt();
     }
 
-    return new CursorPageResponseInterestDto<>(
+    return new CursorPageResponseInterestDto(
         interestDtos, nextCursor, nextAfter, interestDtos.size(), totalElements, hasNext);
   }
 
