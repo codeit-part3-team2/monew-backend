@@ -6,8 +6,8 @@ import com.monew.monew_api.domain.interest.entity.QInterest;
 import com.monew.monew_api.domain.interest.entity.QInterestKeyword;
 import com.monew.monew_api.domain.interest.entity.QKeyword;
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
+import com.querydsl.core.types.dsl.BooleanExpression;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import java.time.LocalDateTime;
@@ -25,107 +25,103 @@ import org.springframework.stereotype.Repository;
 public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
 
   private final JPAQueryFactory queryFactory;
-  private final QInterest i =  QInterest.interest;
+  private final QInterest i = QInterest.interest;
   private final QKeyword k = QKeyword.keyword1;
   private final QInterestKeyword ik = QInterestKeyword.interestKeyword;
 
- @Override
+  @Override
   public Slice<Interest> findAll(
       String searchKeyword, InterestSortBy sortBy, Direction direction,
       String cursor, LocalDateTime after, int limit) {
 
     BooleanBuilder builder = new BooleanBuilder();
 
-    // 관심사명과 키워드 부분 일치 필터링
-    if (searchKeyword != null && !searchKeyword.isBlank()) {
-      builder.and(i.name.containsIgnoreCase(searchKeyword)
-          .or(k.keyword.containsIgnoreCase(searchKeyword)));
-    }
-
+    // 커서 조건
     if (cursor != null && !cursor.isBlank()) {
-      if (sortBy == InterestSortBy.NAME) {
-        if (direction == Direction.ASC) {
-          builder.and(i.name.gt(cursor));
-        } else {
-          builder.and(i.name.lt(cursor));
-        }
-      }
-      else if (sortBy == InterestSortBy. SUBSCRIBER_COUNT){
-        int value = Integer.parseInt(cursor);
-        if (direction == Direction.ASC) {
-          builder.and(i.subscriberCount.gt(value));
-        } else {
-          builder.and(i.subscriberCount.lt(value));
-        }
+      if (sortBy == InterestSortBy.name) {
+        if (direction == Direction.ASC) builder.and(i.name.gt(cursor));
+        else builder.and(i.name.lt(cursor));
+      } else if (sortBy == InterestSortBy.subscriberCount) {
+        int v = Integer.parseInt(cursor);
+        if (direction == Direction.ASC) builder.and(i.subscriberCount.gt(v));
+        else builder.and(i.subscriberCount.lt(v));
       }
     }
 
-    // 정렬조건 + 기본정렬(createdAt)
-    OrderSpecifier<?> order;
-    OrderSpecifier<?> createdAtOrder = i.createdAt.asc();
+    // 정렬 조건
+    OrderSpecifier<?> primaryOrder =
+        (sortBy == InterestSortBy.name)
+            ? (direction == Direction.ASC ? i.name.asc() : i.name.desc())
+            : (direction == Direction.ASC ? i.subscriberCount.asc() : i.subscriberCount.desc());
 
-    if (sortBy == InterestSortBy.NAME){
-      order = (direction == Direction.ASC)
-          ? i.name.asc()
-          : i.name.desc();
-    } else {
-      order = (direction == Direction.ASC)
-          ? i.subscriberCount.asc()
-          : i.subscriberCount.desc();
+    OrderSpecifier<?> createdAtOrder =
+        (direction == Direction.ASC ? i.createdAt.asc() : i.createdAt.desc());
 
-      createdAtOrder = (direction == Direction.ASC)
-          ? i.createdAt.asc()
-          : i.createdAt.desc();
-    }
+    QInterestKeyword ikFilter = new QInterestKeyword("ikFilter"); // 필터링 판별 전용
+    QKeyword kFilter = new QKeyword("kFilter");
 
-    // 관심사와 키워드 함께 조회 -> N+1 문제 방지
+    QInterestKeyword ikAll = new QInterestKeyword("ikAll"); // 전체 로딩 전용
+    QKeyword kAll = new QKeyword("kAll");
+
     JPAQuery<Interest> query = queryFactory
         .selectFrom(i)
-        .distinct()
-        .leftJoin(i.keywords, ik).fetchJoin() // 연관된 키워드 한번에 로딩
-        .leftJoin(ik.keyword, k).fetchJoin()
-        .where(builder);
+        .distinct();
 
-    query.orderBy(order, createdAtOrder);
+    // 검색어가 있는 경우
+    if (searchKeyword != null && !searchKeyword.isBlank()) {
+      BooleanExpression nameLike = i.name.containsIgnoreCase(searchKeyword);
 
-    // limit +1로 hasNext 판단
-    List<Interest> results = query.limit(limit + 1).fetch();
-    boolean hasNext = results.size() > limit;
+      // 같은 관심사에 포함된 키워드 중 검색어가 포함되는 행만 매칭!
+      query.leftJoin(i.keywords, ikFilter)
+          .on(ikFilter.interest.eq(i))
+          .leftJoin(ikFilter.keyword, kFilter)
+          .on(kFilter.keyword.containsIgnoreCase(searchKeyword));
 
-    if(hasNext){
-      results = results.subList(0, limit);
+      builder.and(nameLike.or(kFilter.id.isNotNull()));
     }
 
-    //Slice 반환
+    // 전체 키워드 로딩
+    query.leftJoin(i.keywords, ikAll).fetchJoin()
+        .leftJoin(ikAll.keyword, kAll).fetchJoin();
+
+    query.where(builder)
+        .orderBy(primaryOrder, createdAtOrder);
+
+    List<Interest> results = query.limit(limit + 1).fetch();
+
+    boolean hasNext = results.size() > limit;
+    if (hasNext) results = results.subList(0, limit);
+
     Pageable pageable = PageRequest.of(0, limit);
     return new SliceImpl<>(results, pageable, hasNext);
- }
-
+  }
 
   @Override
-  public long countFilteredTotalElements(String keyword, InterestSortBy sortBy,
-      Direction direction) {
+  public long countFilteredTotalElements(String keyword, InterestSortBy sortBy, Direction direction) {
 
-    BooleanBuilder builder = new BooleanBuilder();
+    BooleanBuilder where = new BooleanBuilder();
 
-    if(keyword != null && !keyword.isBlank()) {
-      builder.and(i.name.containsIgnoreCase(keyword))
-          .or(k.keyword.containsIgnoreCase(keyword));
-    }
+    QInterestKeyword ikFilter = new QInterestKeyword("ikFilter");
+    QKeyword kFilter = new QKeyword("kFilter");
 
     JPAQuery<Long> query = queryFactory
-        .select(i.countDistinct())
+        .select(i.id.countDistinct())
         .from(i);
 
-    // 키워드 있을 때만 조인 하도록 설정
     if (keyword != null && !keyword.isBlank()) {
-      query.leftJoin(i.keywords, ik)
-          .leftJoin(ik.keyword, k);
+      BooleanExpression nameLike = i.name.containsIgnoreCase(keyword);
+
+      query.leftJoin(i.keywords, ikFilter)
+          .on(ikFilter.interest.eq(i))
+          .leftJoin(ikFilter.keyword, kFilter)
+          .on(kFilter.keyword.containsIgnoreCase(keyword));
+
+      where.and(nameLike.or(kFilter.id.isNotNull()));
     }
 
-    query.where(builder);
-
-    Long count = query.fetchOne();
+    Long count = query.where(where).fetchOne();
     return (count == null) ? 0L : count;
   }
 }
+
+
