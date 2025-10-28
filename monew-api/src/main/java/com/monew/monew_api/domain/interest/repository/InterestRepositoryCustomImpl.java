@@ -26,8 +26,6 @@ public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
 
   private final JPAQueryFactory queryFactory;
   private final QInterest i = QInterest.interest;
-  private final QKeyword k = QKeyword.keyword1;
-  private final QInterestKeyword ik = QInterestKeyword.interestKeyword;
 
   @Override
   public Slice<Interest> findAll(
@@ -35,6 +33,10 @@ public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
       String cursor, LocalDateTime after, int limit) {
 
     BooleanBuilder builder = new BooleanBuilder();
+
+    if (after != null){
+      builder.and(i.updatedAt.goe(after));
+    }
 
     // 커서 조건
     if (cursor != null && !cursor.isBlank()) {
@@ -123,5 +125,4 @@ public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
     return (count == null) ? 0L : count;
   }
 }
-
 
