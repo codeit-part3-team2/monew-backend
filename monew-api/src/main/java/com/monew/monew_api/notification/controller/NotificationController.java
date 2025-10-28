@@ -36,4 +36,13 @@ public class NotificationController {
         log.info("[API 요청] PATCH /api/notifications/{} - 알림 단건 확인 성공, 사용자 ID: {}", notificationId, userId);
         return ResponseEntity.ok().build();
     }
+
+    @PatchMapping
+    public ResponseEntity<Void> confirmAll(@RequestHeader("Monew-Request-User-ID") Long userId) {
+        log.info("[API 요청] PATCH /api/notifications - 알림 전체 확인, 사용자 ID: {}", userId);
+        notificationService.setAllConfirmed(userId);
+        log.info("[API 요청] PATCH /api/notifications - 알림 전체 확인 성공, 사용자 ID: {}", userId);
+
+        return ResponseEntity.ok().build();
+    }
 }

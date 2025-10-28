@@ -44,4 +44,11 @@ public class NotificationService {
 
         notification.confirm();
     }
+
+    @Transactional
+    public void setAllConfirmed(Long userId) {
+        int affectedRows = notificationRepository.confirmAllByUserId(userId);
+
+        log.info("[알림 전체 확인] 사용자 ID: {}, 확인된 알림 개수: {}개", userId, affectedRows);
+    }
 }
