@@ -6,6 +6,7 @@ import com.monew.monew_api.domain.interest.entity.QInterest;
 import com.monew.monew_api.domain.interest.entity.QInterestKeyword;
 import com.monew.monew_api.domain.interest.entity.QKeyword;
 import com.querydsl.core.BooleanBuilder;
+import com.querydsl.core.types.Order;
 import com.querydsl.core.types.OrderSpecifier;
 import com.querydsl.jpa.impl.JPAQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
@@ -29,7 +30,8 @@ public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
   private final QInterestKeyword ik = QInterestKeyword.interestKeyword;
 
  @Override
-  public Slice<Interest> findAll(String searchKeyword, InterestSortBy sortBy, Direction direction,
+  public Slice<Interest> findAll(
+      String searchKeyword, InterestSortBy sortBy, Direction direction,
       String cursor, LocalDateTime after, int limit) {
 
     BooleanBuilder builder = new BooleanBuilder();

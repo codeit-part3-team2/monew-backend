@@ -9,6 +9,7 @@ import com.monew.monew_api.domain.interest.service.InterestService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -43,14 +45,14 @@ public class InterestController {
 
 
   @GetMapping
-  public ResponseEntity<CursorPageResponseInterestDto<InterestDto>> getInterests(
+  public ResponseEntity<CursorPageResponseInterestDto> getInterests(
       @RequestHeader Long userId,
-      @Valid @ModelAttribute CursorPageRequestInterestDto request
+      @ParameterObject @ModelAttribute CursorPageRequestInterestDto request
     ) {
 
     log.info("관심사 조회 요청: {}", request);
-    CursorPageResponseInterestDto<InterestDto> response = interestService.getInterests(userId,request);
-    log.info("관심사 조회 완료: {}", response);
+    CursorPageResponseInterestDto response = interestService.getInterests(userId,request);
+    log.info("관심사 조회 완료: {}", request);
 
     return ResponseEntity.ok(response);
   }
