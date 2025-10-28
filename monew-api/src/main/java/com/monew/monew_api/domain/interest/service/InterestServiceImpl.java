@@ -90,7 +90,7 @@ public class InterestServiceImpl implements InterestService {
     userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
     final String keyword = (request.keyword() == null) ? null : request.keyword();
-    final InterestSortBy sortBy = request.sortBy();
+    final InterestSortBy sortBy = request.orderBy();
     final Direction direction = request.direction();
     final String cursor = request.cursor();
     final LocalDateTime after = request.after();
@@ -124,9 +124,9 @@ public class InterestServiceImpl implements InterestService {
 
     if(hasNext && !interestIds.isEmpty()) {
       Interest last = interests.get(interests.size() - 1);
-      if(sortBy == InterestSortBy.NAME){
+      if(sortBy == InterestSortBy.name){
         nextCursor = last.getName();
-      } else if (sortBy == InterestSortBy.SUBSCRIBER_COUNT){
+      } else if (sortBy == InterestSortBy.subscriberCount){
         nextCursor = String.valueOf(last.getSubscriberCount());
       }
       nextAfter = last.getCreatedAt();
@@ -140,9 +140,9 @@ public class InterestServiceImpl implements InterestService {
   @Override
   @Transactional
   public InterestDto updateInterestKeywords(
-      InterestUpdateRequest request, Long interestId, Long userId) {
+      InterestUpdateRequest request, Long interestId) {
 
-    userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+//    userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
     Interest interest =  interestRepository.findById(interestId).orElseThrow(InterestNotFoundException::new);
 
     updateKeywords(interest, request.keywords());
