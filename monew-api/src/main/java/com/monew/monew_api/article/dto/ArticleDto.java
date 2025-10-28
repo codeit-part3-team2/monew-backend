@@ -1,12 +1,11 @@
 package com.monew.monew_api.article.dto;
 
-import lombok.AllArgsConstructor;
+import com.querydsl.core.annotations.QueryProjection;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 /**
  * 단일 기사 응답 DTO
@@ -14,7 +13,6 @@ import java.util.UUID;
 @Getter
 @Builder
 @NoArgsConstructor
-@AllArgsConstructor
 public class ArticleDto {
 
     private Long id;                    // 기사 ID
@@ -26,4 +24,21 @@ public class ArticleDto {
     private int commentCount;           // 댓글 수
     private int viewCount;              // 조회 수
     private boolean viewedByMe;         // 내가 조회했는지 여부
+
+    @QueryProjection
+    public ArticleDto(
+            Long id, String source, String sourceUrl,
+            String title, LocalDateTime publishDate, String summary,
+            int commentCount, int viewCount, boolean viewedByMe
+    ) {
+        this.id = id;
+        this.source = source;
+        this.sourceUrl = sourceUrl;
+        this.title = title;
+        this.publishDate = publishDate;
+        this.summary = summary;
+        this.commentCount = commentCount;
+        this.viewCount = viewCount;
+        this.viewedByMe = viewedByMe;
+    }
 }
