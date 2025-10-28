@@ -34,8 +34,6 @@ import com.monew.monew_api.common.exception.comment.CommentUserNotFoundException
 import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.domain.user.repository.UserRepository;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -83,12 +81,11 @@ public class CommentService {
 	}
 
 	@Transactional
-	public void delete(Long userId, Long commentId) {
+	public void delete(Long commentId) {
 		Comment comment = getCommentById(commentId);
-		validateOwnership(comment, userId);
 
 		commentRepository.delete(comment);
-		log.info("[COMMENT][DELETE] userId={}, commentId={}", userId, commentId);
+		log.info("[COMMENT][DELETE] commentId={}", commentId);
 	}
 
 	@Transactional
@@ -113,9 +110,10 @@ public class CommentService {
 	}
 
 	@Transactional
-	public void dislike(Long userId, Long commentId) {  // void 반환
+	public void dislike(Long userId, Long commentId) {
 		boolean liked = commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId);
-		if (!liked) throw new CommentNotLikedException();
+		if (!liked)
+			throw new CommentNotLikedException();
 
 		commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId);
 		commentRepository.decLikeCount(commentId);
@@ -132,6 +130,9 @@ public class CommentService {
 		Integer cursorLikeCount,
 		Long requestUserId
 	) {
+
+		log.info("=== [DEBUG] Service에 전달된 requestUserId = {} ===", requestUserId);
+
 		final boolean orderByLike = "likeCount".equalsIgnoreCase(orderBy);
 
 		List<Comment> page = orderByLike
@@ -141,6 +142,14 @@ public class CommentService {
 		boolean hasNext = page.size() > size;
 		if (hasNext)
 			page = page.subList(0, size);
+
+
+		page.forEach(comment -> {
+			log.info("[DEBUG] 댓글 ID={}, 작성자 userId={}, 내용={}",
+				comment.getId(),
+				comment.getUser().getId(),
+				comment.getContent().substring(0, Math.min(10, comment.getContent().length())));
+		});
 
 		Set<Long> likedCommentIds = requestUserId == null || page.isEmpty()
 			? Set.of()
@@ -152,8 +161,14 @@ public class CommentService {
 			.collect(Collectors.toSet());
 
 		List<CommentDto> content = page.stream()
-			.map(c -> CommentDto.from(c, likedCommentIds.contains(c.getId())))
+			.map(c -> CommentDto.from(c, likedCommentIds.contains(c.getId()),
+				requestUserId))
 			.toList();
+
+		content.forEach(dto -> {
+			log.info("[DEBUG] 응답 DTO - commentId={}, userId={}, isMyComment={}, likedByMe={}",
+				dto.id(), dto.userId(), dto.isMyComment(), dto.likedByMe());
+		});
 
 		String nextCursor = null;
 		if (hasNext) {
@@ -181,9 +196,6 @@ public class CommentService {
 		);
 	}
 
-	@PersistenceContext
-	private EntityManager entityManager;
-
 	@Transactional
 	public void hardDelete(Long commentId) {
 		if (!commentRepository.existsById(commentId)) {
@@ -191,19 +203,6 @@ public class CommentService {
 		}
 		commentRepository.hardDeleteById(commentId);
 		log.info("[COMMENT][HARD_DELETE] commentId={}", commentId);
-	}
-
-	public CommentDto findById(Long commentId, String userId) {
-		Comment comment = getCommentById(commentId);
-		boolean likedByMe = false;
-		if (userId != null && !userId.isBlank()) {
-			likedByMe = commentLikeRepository.existsByComment_IdAndUser_Id(commentId, Long.parseLong(userId));
-		}
-		return CommentDto.from(comment, likedByMe);
-	}
-
-	public CommentLikeDto findLike(Long commentId, Long userId) {
-		return CommentLikeDto.of(commentId, userId);
 	}
 
 	// === 내부 유틸 ===
