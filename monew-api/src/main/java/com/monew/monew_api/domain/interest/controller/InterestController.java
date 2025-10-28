@@ -46,7 +46,7 @@ public class InterestController {
 
   @GetMapping
   public ResponseEntity<CursorPageResponseInterestDto> getInterests(
-      @RequestHeader Long userId,
+      @RequestHeader("Monew-Request-User-Id") Long userId,
       @ParameterObject @ModelAttribute CursorPageRequestInterestDto request
     ) {
 
@@ -73,12 +73,11 @@ public class InterestController {
   @PatchMapping("/{interestId}")
   public ResponseEntity<InterestDto> updateInterestKeywords(
       @PathVariable Long interestId,
-      @RequestBody InterestUpdateRequest request,
-      @RequestHeader Long userId
+      @RequestBody InterestUpdateRequest request
   ){
     log.info("관심사 키워드 수정 요청 : interestId={}, request={}", interestId, request);
     InterestDto updatedKeyword = interestService
-        .updateInterestKeywords(request, interestId, userId);
+        .updateInterestKeywords(request, interestId);
     log.info("관심사 키워드 수정 완료 : response={}", updatedKeyword);
 
     return ResponseEntity.status(HttpStatus.OK).body(updatedKeyword);
