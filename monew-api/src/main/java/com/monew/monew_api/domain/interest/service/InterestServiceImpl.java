@@ -90,8 +90,8 @@ public class InterestServiceImpl implements InterestService {
     userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
     final String keyword = (request.keyword() == null) ? null : request.keyword();
-    final InterestSortBy sortBy = request.orderBy();
-    final Direction direction = request.direction();
+    final InterestSortBy sortBy = (request.orderBy() == null) ? InterestSortBy.name : request.orderBy();
+    final Direction direction = (request.direction() == null) ? Direction.ASC : request.direction();
     final String cursor = request.cursor();
     final LocalDateTime after = request.after();
     final int limit = request.limit();
@@ -102,7 +102,7 @@ public class InterestServiceImpl implements InterestService {
 
     List<Interest> interests = slices.getContent();
 
-    Set<Long> interestIds = interests.stream().map(Interest::getId).collect(Collectors.toSet());
+//    Set<Long> interestIds = interests.stream().map(Interest::getId).collect(Collectors.toSet());
 
     List<InterestDto> interestDtos = new ArrayList<>(interests.size());
     for (Interest interest : interests) {
@@ -121,15 +121,18 @@ public class InterestServiceImpl implements InterestService {
     String nextCursor = null;
     LocalDateTime nextAfter = null;
 
-
-    if(hasNext && !interestIds.isEmpty()) {
+    if (!interests.isEmpty()) {
       Interest last = interests.get(interests.size() - 1);
-      if(sortBy == InterestSortBy.name){
-        nextCursor = last.getName();
-      } else if (sortBy == InterestSortBy.subscriberCount){
-        nextCursor = String.valueOf(last.getSubscriberCount());
-      }
-      nextAfter = last.getCreatedAt();
+      switch (sortBy) {
+        case name -> {
+          String name = last.getName();
+          nextCursor = (name != null && !name.isBlank())
+              ? name
+              : String.valueOf(last.getId());
+        }
+        case subscriberCount -> nextCursor = String.valueOf(last.getSubscriberCount());
+        default -> nextCursor = String.valueOf(last.getId());
+      } nextAfter = last.getCreatedAt();
     }
 
     return new CursorPageResponseInterestDto(
