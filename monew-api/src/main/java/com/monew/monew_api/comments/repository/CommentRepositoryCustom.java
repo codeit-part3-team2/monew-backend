@@ -6,11 +6,6 @@ import java.util.List;
 import com.monew.monew_api.comments.entity.Comment;
 
 public interface CommentRepositoryCustom {
-	List<Comment> findCommentsByArticleIdWithCursor(
-		Long articleId,
-		Long cursorId,
-		int limit,
-		String sort);
 
 	List<Comment> findPageByArticleIdOrderByCreatedAtDesc(
 		Long articleId,

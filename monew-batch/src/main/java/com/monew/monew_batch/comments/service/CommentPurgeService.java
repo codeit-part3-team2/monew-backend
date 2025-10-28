@@ -35,6 +35,10 @@ public class CommentPurgeService {
 
 			if (ids.isEmpty()) break;
 
+			em.createQuery("delete from CommentLike cl where cl.comment.id in :ids")
+				.setParameter("ids", ids)
+				.executeUpdate();
+
 			int deleted = em.createQuery("delete from Comment c where c.id in :ids")
 				.setParameter("ids", ids)
 				.executeUpdate();

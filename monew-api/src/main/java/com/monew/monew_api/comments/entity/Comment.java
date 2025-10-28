@@ -53,9 +53,9 @@ public class Comment extends BaseTimeEntity {
 	@Column(name = "like_count", nullable = false)
 	private int likeCount = 0;
 
-	private Comment(User user, Article articleId, String content) {
+	private Comment(User user, Article article, String content) {
 		this.user = user;
-		this.article = articleId;
+		this.article = article;
 		this.content  = content;
 	}
 

@@ -1,5 +1,8 @@
 package com.monew.monew_api.comments.dto;
 
+import com.monew.monew_api.common.exception.comment.CommentInvalidArticleIdException;
+import com.monew.monew_api.common.exception.comment.CommentInvalidUserIdException;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -17,14 +20,14 @@ public record CommentRegisterRequest(
 ) {
 
 	public CommentRegisterRequest withUserId(String userId) {
-		return new CommentRegisterRequest(this.articleId, this.content, userId);
+		return new CommentRegisterRequest(this.articleId, userId, this.content);
 	}
 
 	public Long getArticleIdAsLong() {
 		try {
 			return Long.parseLong(articleId);
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("잘못된 기사 ID 형식입니다: " + articleId);
+			throw new CommentInvalidArticleIdException(articleId);
 		}
 	}
 
@@ -32,7 +35,7 @@ public record CommentRegisterRequest(
 		try {
 			return Long.parseLong(userId);
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("잘못된 사용자 ID 형식입니다: " + userId);
+			throw new CommentInvalidUserIdException(userId);
 		}
 	}
 }

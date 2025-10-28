@@ -1,7 +1,5 @@
 package com.monew.monew_api.comments.dto;
 
-import java.time.LocalDateTime;
-
 import com.monew.monew_api.comments.entity.CommentLike;
 
 public record CommentLikeActivityDto(

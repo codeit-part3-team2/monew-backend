@@ -27,6 +27,8 @@ public enum ErrorCode {
     COMMENT_NOT_LIKED(HttpStatus.BAD_REQUEST.value(), "좋아요하지 않은 댓글은 취소할 수 없습니다."),
     COMMENT_USER_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "댓글 작성자를 찾을 수 없습니다."),
     COMMENT_ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "댓글이 연결된 기사를 찾을 수 없습니다."),
+    COMMENT_INVALID_USER_ID(HttpStatus.BAD_REQUEST.value(), "유효하지 않은 사용자 ID 형식입니다."),
+    COMMENT_INVALID_ARTICLE_ID(HttpStatus.BAD_REQUEST.value(), "유효하지 않은 기사 ID 형식입니다."),
 
     // 알림 - NOTIFICATION
     NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "알림 정보를 찾을 수 없습니다.");

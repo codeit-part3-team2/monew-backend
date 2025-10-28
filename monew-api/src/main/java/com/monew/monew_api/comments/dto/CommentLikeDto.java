@@ -32,18 +32,16 @@ public record CommentLikeDto(
 		);
 	}
 
-	public static CommentLikeDto of(Long commentId, Long userId, boolean liked) {
+	public static CommentLikeDto of(Long commentId, Long userId) {
 		return new CommentLikeDto(
-			null, // id는 단건 조회에선 사용하지 않음
+			null,
 			String.valueOf(commentId),
-			null, // articleId도 필요 없으면 null
-			String.valueOf(userId), // likedBy
-			null, // commentUserId
-			null, // commentUserNickname
-			null, // commentContent
-			-1,   // commentLikeCount
-			null, // commentCreatedAt
-			LocalDateTime.now().toString() // createdAt은 현재 시각 또는 null
+			null,
+			String.valueOf(userId),
+			null, null, null,
+			-1,
+			null,
+			LocalDateTime.now().toString()
 		);
 	}
 

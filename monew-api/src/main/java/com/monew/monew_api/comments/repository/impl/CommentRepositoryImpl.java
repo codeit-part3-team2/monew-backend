@@ -22,20 +22,6 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 	private final QComment c = QComment.comment;
 
 	@Override
-	public List<Comment> findCommentsByArticleIdWithCursor(Long articleId, Long cursorId, int limit, String sort) {
-		OrderSpecifier<?> orderBy = "like".equalsIgnoreCase(sort) ? c.likeCount.desc() : c.createdAt.desc();
-		BooleanExpression byArticle = articleIdEq(articleId);
-		BooleanExpression ltCursor = cursorId != null ? c.id.lt(cursorId) : null;
-
-		return jpaQueryFactory
-			.selectFrom(c)
-			.where(byArticle, ltCursor)
-			.orderBy(orderBy, c.id.desc())
-			.limit(limit)
-			.fetch();
-	}
-
-	@Override
 	public List<Comment> findPageByArticleIdOrderByCreatedAtDesc(Long articleId, Long cursorId,
 		LocalDateTime cursorCreatedAt, int limit) {
 
@@ -44,9 +30,11 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 
 		return jpaQueryFactory
 			.selectFrom(c)
+			.leftJoin(c.user).fetchJoin()
+			.leftJoin(c.article).fetchJoin()
 			.where(byArticle, afterCursor)
 			.orderBy(c.createdAt.desc(), c.id.desc())
-			.limit(limit)
+			.limit(limit + 1)
 			.fetch();
 	}
 
@@ -58,15 +46,16 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 
 		return jpaQueryFactory
 			.selectFrom(c)
+			.leftJoin(c.user).fetchJoin()
+			.leftJoin(c.article).fetchJoin()
 			.where(byArticle, afterCursor)
 			.orderBy(c.likeCount.desc(), c.id.desc())
-			.limit(limit)
+			.limit(limit + 1)
 			.fetch();
 	}
 
-	// ✅ article.id 기반 비교로 변경
 	private BooleanExpression articleIdEq(Long articleId) {
-		return c.article.id.eq(articleId);
+		return articleId != null ? c.article.id.eq(articleId) : null;
 	}
 
 	private BooleanExpression buildCreatedAtCursor(Long cursorId, LocalDateTime cursorCreatedAt) {
