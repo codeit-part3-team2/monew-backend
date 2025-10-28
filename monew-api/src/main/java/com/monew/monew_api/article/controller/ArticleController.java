@@ -1,14 +1,15 @@
 package com.monew.monew_api.article.controller;
 
 import com.monew.monew_api.article.dto.ArticleDto;
+import com.monew.monew_api.article.dto.ArticleSearchRequest;
 import com.monew.monew_api.article.dto.ArticleViewDto;
 import com.monew.monew_api.article.dto.CursorPageResponseArticleDto;
 import com.monew.monew_api.article.service.ArticleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -42,54 +43,42 @@ public class ArticleController {
      */
     @GetMapping
     public ResponseEntity<CursorPageResponseArticleDto<ArticleDto>> getArticles(
-            @RequestParam(required = false) String keyword,
-            @RequestParam(required = false) Long interestId,
-            @RequestParam(required = false) List<String> sourceIn,
-            //
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDateTime publishDateFrom,
-            //
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDateTime publishDateTo,
-            //
-            @RequestParam(defaultValue = "publishDate") String orderBy,
-            @RequestParam(defaultValue = "DESC") String direction,
-            @RequestParam(required = false) String cursor,
-            @RequestParam(required = false)
-            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-            LocalDateTime after,
-            @RequestParam(defaultValue = "10") int limit,
+            @Validated @ModelAttribute ArticleSearchRequest request,
             @RequestHeader("Monew-Request-User-ID") Long userId
     ) {
         log.info("[API 요청] GET /api/articles - 기사 목록 조회 요청, 사용자 ID: {}, 키워드: {}, 관심사 ID: {}",
-                userId, keyword, interestId);
+                userId, request.getKeyword(), request.getInterestId());
 
-        if (sourceIn == null || sourceIn.isEmpty()) {
-            sourceIn = List.of(DEFAULT_ARTICLE_SOURCE);
+        if (request.getSourceIn() == null || request.getSourceIn().isEmpty()) {
+            request.setSourceIn(List.of(DEFAULT_ARTICLE_SOURCE));
         }
 
         LocalDateTime now = LocalDateTime.now();
-        if (publishDateFrom == null) {
-            publishDateFrom = now.minusDays(7);
+        if (request.getPublishDateFrom() == null) {
+            request.setPublishDateFrom(now.minusDays(7));
         }
-        if (publishDateTo == null) {
-            publishDateTo = now;
+        if (request.getPublishDateTo() == null) {
+            request.setPublishDateTo(now);
         }
 
-        log.debug("[조회 파라미터] sourceIn: {}, 기간: {} ~ {}, 정렬: {} {}, limit: {}",
-                sourceIn, publishDateFrom, publishDateTo, orderBy, direction, limit);
+        log.debug("[조회 파라미터] {}", request);
 
         CursorPageResponseArticleDto<ArticleDto> dto = articleService.getArticles(
-                keyword, interestId, sourceIn,
-                publishDateFrom, publishDateTo,
-                orderBy, direction,
-                cursor, after, limit, userId
+                request.getKeyword(),
+                request.getInterestId(),
+                request.getSourceIn(),
+                request.getPublishDateFrom(),
+                request.getPublishDateTo(),
+                request.getOrderBy(),
+                request.getDirection(),
+                request.getCursor(),
+                request.getAfter(),
+                request.getLimit(),
+                userId
         );
 
         log.info("[API 응답] GET /api/articles - 조회 성공, 반환된 기사 수: {}", dto.getContent().size());
-        return ResponseEntity.status(HttpStatus.OK).body(dto);
+        return ResponseEntity.ok(dto);
     }
 
     /**
