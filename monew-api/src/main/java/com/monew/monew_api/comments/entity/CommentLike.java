@@ -36,8 +36,8 @@ public class CommentLike extends BaseCreatedEntity {
 	@JoinColumn(name="user_id", nullable=false)
 	private User user;
 
-	// @ManyToOne(fetch = LAZY) @JoinColumn(name="comment_id", nullable=false)
-	// private Comment comment;
+	@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name="comment_id", nullable=false)
+	private Comment comment;
 
 	@Column(name = "comment_id", nullable = false)
 	private Long commentId;

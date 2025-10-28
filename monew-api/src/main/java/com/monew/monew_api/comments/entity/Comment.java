@@ -75,4 +75,7 @@ public class Comment extends BaseTimeEntity {
 	public Long getUserId() {
 		return this.user != null ? this.user.getId() : null;
 	}
+	public String getUserIdAsString() {
+		return String.valueOf(getUserId());
+	}
 }
