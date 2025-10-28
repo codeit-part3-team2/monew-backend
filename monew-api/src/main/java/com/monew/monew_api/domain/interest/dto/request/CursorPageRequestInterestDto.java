@@ -11,7 +11,7 @@ import org.springframework.data.domain.Sort.Direction;
 public record CursorPageRequestInterestDto(
 
     String keyword, // 검색어(관심사, 키워드)
-    @NotNull InterestSortBy sortBy,
+    @NotNull InterestSortBy orderBy,
     @NotNull Direction direction, // 정렬 방향 (ASC, DESC)
     String cursor, // 커서 값
     LocalDateTime after, //
