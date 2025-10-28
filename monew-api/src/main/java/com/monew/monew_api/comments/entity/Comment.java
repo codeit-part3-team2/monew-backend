@@ -4,11 +4,16 @@ import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
 import com.monew.monew_api.common.entity.BaseTimeEntity;
+import com.monew.monew_api.domain.user.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -28,21 +33,19 @@ import lombok.NoArgsConstructor;
 @Where(clause = "is_deleted = false")
 public class Comment extends BaseTimeEntity {
 
-	// @ManyToOne(fetch = FetchType.LAZY)
-	// @JoinColumn(name = "user_id", nullable = false)
-	// private User user;
-	//
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "user_id", nullable = false)
+	private User user;
+
 	// @ManyToOne(fetch = FetchType.LAZY)
 	// @JoinColumn(name = "article_id", nullable = false)
 	// private Article article;
-
-	@Column(name = "user_id", nullable = false)
-	private Long userId;
 
 	@Column(name = "article_id", nullable = false)
 	private Long articleId;
 
 	@Size(max = 500)
+	@NotBlank
 	@Column(name = "content", nullable = false, length = 500)
 	private String content;
 
@@ -52,24 +55,24 @@ public class Comment extends BaseTimeEntity {
 	@Column(name = "like_count", nullable = false)
 	private int likeCount = 0;
 
-	private Comment(Long userId, Long articleId, String content) {
-		this.userId = userId;
+	private Comment(User user, Long articleId, String content) {
+		this.user = user;
 		this.articleId = articleId;
 		this.content  = content;
 	}
 
-	// factory
-	public static Comment of(Long userId, Long articleId, String content) {
-		return new Comment(userId, articleId, content);
+	public static Comment of(User user, Long articleId, String content) {
+		return new Comment(user, articleId, content);
 	}
 
-	// 비즈니스 로직
+	public boolean isOwnedBy(Long userId) { return this.user != null && this.user.getId().equals(userId); }
 	public void updateContent(String content) { this.content = content; }
 
 	public void increaseLike() { this.likeCount += 1; }
-
 	public void decreaseLike() {
 		if (this.likeCount > 0) this.likeCount -= 1;
 	}
-
+	public Long getUserId() {
+		return this.user != null ? this.user.getId() : null;
+	}
 }
