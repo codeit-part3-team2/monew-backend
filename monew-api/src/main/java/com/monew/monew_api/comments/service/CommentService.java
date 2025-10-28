@@ -53,8 +53,8 @@ public class CommentService {
 
 	@Transactional
 	public CommentDto register(CommentRegisterRequest request) {
-		User user = getUserById(request.getUserIdAsLong());
-		Article article = getArticleById(request.getArticleIdAsLong());
+		User user = getUserById(request.userId());
+		Article article = getArticleById(request.articleId());
 
 		Comment saved = commentRepository.save(Comment.of(user, article, request.content()));
 		log.info("[COMMENT][CREATE] userId={}, articleId={}, commentId={}",

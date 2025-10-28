@@ -9,7 +9,7 @@ import jakarta.validation.constraints.Size;
 
 public record CommentRegisterRequest(
 	@NotNull(message = "기사 ID는 필수입니다.")
-	String articleId,
+	Long articleId,
 
 	Long userId,
 
