@@ -23,8 +23,17 @@ public class NotificationController {
                                                                                 @ModelAttribute @Valid NotificationCursorPageRequest cursorPageRequest) {
         log.info("[API 요청] GET /api/notifications - 전체 조회, 사용자 ID: {}", userId);
         CursorPageResponse<NotificationDto> notifications = notificationService.getNonConfirmedNotifications(userId, cursorPageRequest);
-        log.info("[API 응답] GET /api/notifications - 조회 기록 성공, 사용자 ID: {}, 알림 개수: {}", userId, notifications.size());
+        log.info("[API 응답] GET /api/notifications - 전체 조회 성공, 사용자 ID: {}, 알림 개수: {}", userId, notifications.size());
 
         return ResponseEntity.ok(notifications);
+    }
+
+    @PatchMapping("/{notificationId}")
+    public ResponseEntity<Void> confirmOne(@RequestHeader(REQUEST_HEADER_USER_ID) Long userId,
+                                           @PathVariable("notificationId") Long notificationId) {
+        log.info("[API 요청] PATCH /api/notifications/{} - 알림 단건 확인, 사용자 ID: {}", notificationId, userId);
+        notificationService.setOneConfirmed(userId, notificationId);
+        log.info("[API 요청] PATCH /api/notifications/{} - 알림 단건 확인 성공, 사용자 ID: {}", notificationId, userId);
+        return ResponseEntity.ok().build();
     }
 }
