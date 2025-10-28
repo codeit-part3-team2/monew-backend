@@ -4,8 +4,8 @@ DROP TABLE IF EXISTS article_views CASCADE;
 DROP TABLE IF EXISTS comments CASCADE;
 DROP TABLE IF EXISTS notifications CASCADE;
 DROP TABLE IF EXISTS subscribes CASCADE;
-DROP TABLE IF EXISTS interests_keywords CASCADE;
-DROP TABLE IF EXISTS interests_articles CASCADE;
+DROP TABLE IF EXISTS interest_keywords CASCADE;
+DROP TABLE IF EXISTS interest_articles CASCADE;
 DROP TABLE IF EXISTS keywords CASCADE;
 DROP TABLE IF EXISTS articles CASCADE;
 DROP TABLE IF EXISTS interests CASCADE;
@@ -85,40 +85,40 @@ CREATE TABLE keywords
 -- ======================================================
 -- Interests <-> Keywords (M:N)
 -- ======================================================
-CREATE TABLE interests_keywords
+CREATE TABLE interest_keywords
 (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     interest_id BIGINT    NOT NULL,
     keyword_id  BIGINT    NOT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_interests_keywords UNIQUE (interest_id, keyword_id),
-    CONSTRAINT fk_interests_keywords_interest
+    CONSTRAINT uq_interest_keywords UNIQUE (interest_id, keyword_id),
+    CONSTRAINT fk_interest_keywords_interest
         FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE,
-    CONSTRAINT fk_interests_keywords_keyword
+    CONSTRAINT fk_interest_keywords_keyword
         FOREIGN KEY (keyword_id) REFERENCES keywords (id) ON DELETE CASCADE
 );
-CREATE INDEX ix_interests_keywords_interest ON interests_keywords (interest_id);
-CREATE INDEX ix_interests_keywords_keyword ON interests_keywords (keyword_id);
+CREATE INDEX ix_interest_keywords_interest ON interest_keywords (interest_id);
+CREATE INDEX ix_interest_keywords_keyword ON interest_keywords (keyword_id);
 
 -- ======================================================
 -- Interests <-> Articles (M:N)
 -- ======================================================
-CREATE TABLE interests_articles
+CREATE TABLE interest_articles
 (
     id          BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     interest_id BIGINT    NOT NULL,
     article_id  BIGINT    NOT NULL,
     created_at  TIMESTAMP NOT NULL DEFAULT NOW(),
     updated_at  TIMESTAMP NOT NULL DEFAULT NOW(),
-    CONSTRAINT uq_interests_articles UNIQUE (interest_id, article_id),
-    CONSTRAINT fk_interests_articles_interest
+    CONSTRAINT uq_interest_articles UNIQUE (interest_id, article_id),
+    CONSTRAINT fk_interest_articles_interest
         FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE,
-    CONSTRAINT fk_interests_articles_article
+    CONSTRAINT fk_interest_articles_article
         FOREIGN KEY (article_id) REFERENCES articles (id) ON DELETE CASCADE
 );
-CREATE INDEX ix_interests_articles_interest ON interests_articles (interest_id);
-CREATE INDEX ix_interests_articles_article ON interests_articles (article_id);
+CREATE INDEX ix_interest_articles_interest ON interest_articles (interest_id);
+CREATE INDEX ix_interest_articles_article ON interest_articles (article_id);
 
 -- ======================================================
 -- Subscribes (user follows interest)
