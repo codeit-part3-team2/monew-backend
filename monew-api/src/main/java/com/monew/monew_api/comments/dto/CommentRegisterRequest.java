@@ -11,16 +11,20 @@ public record CommentRegisterRequest(
 	@NotNull(message = "사용자 ID는 필수입니다.")
 	String userId,
 
-	@NotBlank(message = "댓글 내용을 작성해주세요.")
+	@NotBlank(message = "댓글 내용을 입력해주세요.")
 	@Size(max = 500, message = "댓글은 최대 500자까지 작성 가능합니다.")
 	String content
 ) {
+
+	public CommentRegisterRequest withUserId(String userId) {
+		return new CommentRegisterRequest(this.articleId, this.content, userId);
+	}
 
 	public Long getArticleIdAsLong() {
 		try {
 			return Long.parseLong(articleId);
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("잘못된 기사 ID 형식입니다.");
+			throw new IllegalArgumentException("잘못된 기사 ID 형식입니다: " + articleId);
 		}
 	}
 
@@ -28,8 +32,7 @@ public record CommentRegisterRequest(
 		try {
 			return Long.parseLong(userId);
 		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("잘못된 사용자 ID 형식입니다.");
+			throw new IllegalArgumentException("잘못된 사용자 ID 형식입니다: " + userId);
 		}
 	}
-
 }

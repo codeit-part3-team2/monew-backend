@@ -3,6 +3,7 @@ package com.monew.monew_api.comments.entity;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.Where;
 
+import com.monew.monew_api.article.entity.Article;
 import com.monew.monew_api.common.entity.BaseTimeEntity;
 import com.monew.monew_api.domain.user.User;
 
@@ -37,12 +38,9 @@ public class Comment extends BaseTimeEntity {
 	@JoinColumn(name = "user_id", nullable = false)
 	private User user;
 
-	// @ManyToOne(fetch = FetchType.LAZY)
-	// @JoinColumn(name = "article_id", nullable = false)
-	// private Article article;
-
-	@Column(name = "article_id", nullable = false)
-	private Long articleId;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "article_id", nullable = false)
+	private Article article;
 
 	@Size(max = 500)
 	@NotBlank
@@ -55,27 +53,37 @@ public class Comment extends BaseTimeEntity {
 	@Column(name = "like_count", nullable = false)
 	private int likeCount = 0;
 
-	private Comment(User user, Long articleId, String content) {
+	private Comment(User user, Article articleId, String content) {
 		this.user = user;
-		this.articleId = articleId;
+		this.article = articleId;
 		this.content  = content;
 	}
 
-	public static Comment of(User user, Long articleId, String content) {
-		return new Comment(user, articleId, content);
+	public static Comment of(User user, Article article, String content) {
+		return new Comment(user, article, content);
 	}
 
-	public boolean isOwnedBy(Long userId) { return this.user != null && this.user.getId().equals(userId); }
-	public void updateContent(String content) { this.content = content; }
+	public void updateContent(String content) {
+		this.content = content;
+	}
 
-	public void increaseLike() { this.likeCount += 1; }
+	public void increaseLike() {
+		this.likeCount++;
+	}
+
 	public void decreaseLike() {
-		if (this.likeCount > 0) this.likeCount -= 1;
+		if (this.likeCount > 0) this.likeCount--;
 	}
+
+	public boolean isOwnedBy(Long userId) {
+		return this.user != null && this.user.getId().equals(userId);
+	}
+
 	public Long getUserId() {
-		return this.user != null ? this.user.getId() : null;
+		return user != null ? user.getId() : null;
 	}
-	public String getUserIdAsString() {
-		return String.valueOf(getUserId());
+
+	public Long getArticleId() {
+		return article != null ? article.getId() : null;
 	}
 }

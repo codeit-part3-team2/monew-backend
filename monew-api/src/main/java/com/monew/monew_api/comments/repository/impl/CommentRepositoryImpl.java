@@ -24,7 +24,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 	@Override
 	public List<Comment> findCommentsByArticleIdWithCursor(Long articleId, Long cursorId, int limit, String sort) {
 		OrderSpecifier<?> orderBy = "like".equalsIgnoreCase(sort) ? c.likeCount.desc() : c.createdAt.desc();
-		BooleanExpression byArticle = c.articleId.eq(articleId);
+		BooleanExpression byArticle = articleIdEq(articleId);
 		BooleanExpression ltCursor = cursorId != null ? c.id.lt(cursorId) : null;
 
 		return jpaQueryFactory
@@ -39,21 +39,21 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 	public List<Comment> findPageByArticleIdOrderByCreatedAtDesc(Long articleId, Long cursorId,
 		LocalDateTime cursorCreatedAt, int limit) {
 
-			BooleanExpression byArticle = c.articleId.eq(articleId);
-			BooleanExpression afterCursor = buildCreatedAtCursor(cursorId, cursorCreatedAt);
+		BooleanExpression byArticle = articleIdEq(articleId);
+		BooleanExpression afterCursor = buildCreatedAtCursor(cursorId, cursorCreatedAt);
 
-			return jpaQueryFactory
-				.selectFrom(c)
-				.where(byArticle, afterCursor)
-				.orderBy(c.createdAt.desc(), c.id.desc())
-				.limit(limit)
-				.fetch();
+		return jpaQueryFactory
+			.selectFrom(c)
+			.where(byArticle, afterCursor)
+			.orderBy(c.createdAt.desc(), c.id.desc())
+			.limit(limit)
+			.fetch();
 	}
 
 	@Override
 	public List<Comment> findPageByArticleIdOrderByLikeCountDesc(Long articleId, Long cursorId, Integer cursorLikeCount,
 		int limit) {
-		BooleanExpression byArticle = c.articleId.eq(articleId);
+		BooleanExpression byArticle = articleIdEq(articleId);
 		BooleanExpression afterCursor = buildLikeCountCursor(cursorId, cursorLikeCount);
 
 		return jpaQueryFactory
@@ -62,6 +62,11 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 			.orderBy(c.likeCount.desc(), c.id.desc())
 			.limit(limit)
 			.fetch();
+	}
+
+	// ✅ article.id 기반 비교로 변경
+	private BooleanExpression articleIdEq(Long articleId) {
+		return c.article.id.eq(articleId);
 	}
 
 	private BooleanExpression buildCreatedAtCursor(Long cursorId, LocalDateTime cursorCreatedAt) {
