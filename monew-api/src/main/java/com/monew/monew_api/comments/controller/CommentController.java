@@ -1,7 +1,9 @@
 package com.monew.monew_api.comments.controller;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.monew.monew_api.comments.dto.CommentRequestDto;
@@ -44,9 +47,18 @@ public class CommentController {
 
 	@GetMapping("/articles/{articleId}/comments")
 	public ResponseEntity<List<CommentResponseDto>> getCommentsByArticle(
-		@PathVariable Long articleId
+		@PathVariable Long articleId,
+		@RequestParam(required = false, defaultValue = "10") Integer limit,
+		@RequestParam(required = false, defaultValue = "created") String sort,
+		@RequestParam(required = false) Long cursorId,
+		@RequestParam(required = false)
+		@DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime cursorCreatedAt,
+		@RequestParam(required = false) Integer cursorLikeCount
 	) {
-		List<CommentResponseDto> comments = commentService.getCommentsByArticleId(articleId);
+
+		List<CommentResponseDto> comments = commentService.getCommentsByArticleIdWithCursor(
+			articleId, limit, sort, cursorId, cursorCreatedAt, cursorLikeCount
+		);
 		return ResponseEntity.ok(comments);
 	}
 

@@ -1,10 +1,14 @@
 package com.monew.monew_api.comments.entity;
 
-import com.monew.monew_api.common.entity.BaseTimeEntity;
+import com.monew.monew_api.common.entity.BaseCreatedEntity;
+import com.monew.monew_api.domain.user.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
 import lombok.AccessLevel;
@@ -15,7 +19,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Entity
 @Table(
-	name = "coment_likes",
+	name = "comment_likes",
 	uniqueConstraints = {
 		@UniqueConstraint(name = "uq_comment_likes", columnNames = {"user_id", "comment_id"})
 	},
@@ -26,27 +30,32 @@ import lombok.NoArgsConstructor;
 
 )
 
-public class CommentLike extends BaseTimeEntity {
+public class CommentLike extends BaseCreatedEntity {
 
-	// @ManyToOne(fetch = LAZY) @JoinColumn(name="user_id", nullable=false)
-	// private User user;
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name="user_id", nullable=false)
+	private User user;
 
 	// @ManyToOne(fetch = LAZY) @JoinColumn(name="comment_id", nullable=false)
 	// private Comment comment;
 
-	@Column(name = "user_id", nullable = false)
-	private Long userId;
-
 	@Column(name = "comment_id", nullable = false)
 	private Long commentId;
 
-	private CommentLike(Long userId, Long commentId) {
-		this.userId = userId;
+	private CommentLike(User userId, Long commentId) {
+		this.user = userId;
 		this.commentId = commentId;
 	}
 
-	public static CommentLike of(Long userId, Long commentId) {
-		return new CommentLike(userId, commentId);
+	public static CommentLike of(User user, Long commentId) {
+		return new CommentLike(user, commentId);
 	}
 
+	public boolean isByUser(Long userId) {
+		return this.user != null && this.user.getId().equals(userId);
+	}
+
+	public boolean isForComment(Long commentId) {
+		return this.commentId.equals(commentId);
+	}
 }
