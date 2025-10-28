@@ -4,8 +4,10 @@ import com.monew.monew_api.domain.interest.dto.InterestSortBy;
 import jakarta.validation.constraints.NotNull;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Sort.Direction;
 
+@ParameterObject
 public record CursorPageRequestInterestDto(
 
     String keyword, // 검색어(관심사, 키워드)
