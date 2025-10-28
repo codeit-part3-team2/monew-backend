@@ -16,7 +16,7 @@ public record CommentDto(
 	public static CommentDto from(Comment comment, boolean likedByMe) {
 		return new CommentDto(
 			String.valueOf(comment.getId()),
-			String.valueOf(comment.getArticleId()),
+			String.valueOf(comment.getArticle().getId()),
 			String.valueOf(comment.getUser().getId()),
 			comment.getUser().getNickname(),
 			comment.getContent(),

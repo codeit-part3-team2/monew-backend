@@ -3,7 +3,6 @@ package com.monew.monew_api.comments.entity;
 import com.monew.monew_api.common.entity.BaseCreatedEntity;
 import com.monew.monew_api.domain.user.User;
 
-import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.Index;
@@ -29,33 +28,30 @@ import lombok.NoArgsConstructor;
 	}
 
 )
-
 public class CommentLike extends BaseCreatedEntity {
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name="user_id", nullable=false)
 	private User user;
 
-	@ManyToOne(fetch = FetchType.LAZY) @JoinColumn(name="comment_id", nullable=false)
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name="comment_id", nullable=false)
 	private Comment comment;
 
-	@Column(name = "comment_id", nullable = false)
-	private Long commentId;
-
-	private CommentLike(User userId, Long commentId) {
-		this.user = userId;
-		this.commentId = commentId;
+	private CommentLike(User user, Comment comment) {
+		this.user = user;
+		this.comment = comment;
 	}
 
-	public static CommentLike of(User user, Long commentId) {
-		return new CommentLike(user, commentId);
+	public static CommentLike of(User user, Comment comment) {
+		return new CommentLike(user, comment);
 	}
 
 	public boolean isByUser(Long userId) {
-		return this.user != null && this.user.getId().equals(userId);
+		return user != null && user.getId().equals(userId);
 	}
 
 	public boolean isForComment(Long commentId) {
-		return this.commentId.equals(commentId);
+		return comment != null && comment.getId().equals(commentId);
 	}
 }

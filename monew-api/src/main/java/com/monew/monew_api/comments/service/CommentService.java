@@ -8,15 +8,17 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.monew.monew_api.article.entity.Article;
+import com.monew.monew_api.article.repository.ArticleRepository;
+import com.monew.monew_api.comments.dto.*;
+import com.monew.monew_api.comments.entity.*;
 import com.monew.monew_api.comments.event.CommentCreatedEvent;
 import com.monew.monew_api.comments.event.CommentLikedEvent;
-import com.monew.monew_api.comments.dto.CommentResponseDto;
-import com.monew.monew_api.comments.entity.Comment;
-import com.monew.monew_api.comments.entity.CommentLike;
 import com.monew.monew_api.comments.repository.CommentLikeRepository;
 import com.monew.monew_api.comments.repository.CommentRepository;
 import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.domain.user.repository.UserRepository;
+import com.monew.monew_api.common.exception.comment.*;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -29,105 +31,126 @@ public class CommentService {
 
 	private final CommentRepository commentRepository;
 	private final CommentLikeRepository commentLikeRepository;
-	private final ApplicationEventPublisher eventPublisher;
 	private final UserRepository userRepository;
-
-	private static final String SORT_CREATED = "created";
-	private static final String SORT_LIKE    = "like";
+	private final ArticleRepository articleRepository;
+	private final ApplicationEventPublisher eventPublisher;
 
 	@Transactional
-	public Long write(Long userId, Long articleId, String content) {
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
-		Comment comment = Comment.of(user, articleId, content);
-		Comment saved = commentRepository.save(comment);
-		log.info("[COMMENT][CREATE] userId={}, articleId={}, commentId={}", userId, articleId, saved.getId());
+	public Long register(CommentRegisterRequest request) {
+		User user = getUserById(request.getUserIdAsLong());
+		Article article = getArticleById(request.getArticleIdAsLong());
 
-		// 댓글 생성 시 이벤트 발행 (알림/활동로그)
-		eventPublisher.publishEvent(new CommentCreatedEvent(saved.getId(), userId, articleId, saved.getCreatedAt()));
+		Comment comment = Comment.of(user, article, request.content());
+		Comment saved = commentRepository.save(comment);
+
+		log.info("[COMMENT][CREATE] userId={}, articleId={}, commentId={}",
+			user.getId(), article.getId(), saved.getId());
+
+		eventPublisher.publishEvent(
+			new CommentCreatedEvent(saved.getId(), user.getId(), article.getId(), saved.getCreatedAt())
+		);
 
 		return saved.getId();
 	}
 
 	@Transactional
-	public void update(Long userId, Long commentId, String content) {
-		Comment comment = commentRepository.findById(commentId)
-			.orElseThrow(() -> new IllegalArgumentException("댓글이 존재하지 않습니다."));
-		validateOwner(userId, comment);
-		log.info("[COMMENT][UPDATE] userId={}, commentId={}, contentLength={}", userId, commentId, content.length());
-		comment.updateContent(content);
-	}
+	public void update(Long userId, Long commentId, CommentUpdateRequest request) {
+		Comment comment = getCommentById(commentId);
+		validateOwnership(comment, userId);
 
-	private void validateOwner(Long userId, Comment comment) {
-		if (!comment.isOwnedBy(userId)) {
-			throw new IllegalStateException("작성자만 수행할 수 있습니다.");
-		}
+		comment.updateContent(request.content());
+		log.info("[COMMENT][UPDATE] userId={}, commentId={}, contentLength={}",
+			userId, commentId, request.content().length());
 	}
 
 	@Transactional
 	public void delete(Long userId, Long commentId) {
-		Comment comment = commentRepository.findById(commentId)
-			.orElseThrow(() -> new IllegalArgumentException("댓글이 존재하지 않습니다."));
-		validateOwner(userId, comment);
-		log.info("[COMMENT][DELETE] userId={}, commentId={}", userId, commentId);
+		Comment comment = getCommentById(commentId);
+		validateOwnership(comment, userId);
 		commentRepository.delete(comment);
+		log.info("[COMMENT][DELETE] userId={}, commentId={}", userId, commentId);
 	}
 
 	@Transactional
 	public void like(Long userId, Long commentId) {
-		Comment comment = commentRepository.findById(commentId)
-			.orElseThrow(() -> new IllegalArgumentException("댓글이 존재하지 않습니다."));
-
-		User user = userRepository.findById(userId)
-			.orElseThrow(() -> new IllegalArgumentException("사용자가 존재하지 않습니다."));
+		User user = getUserById(userId);
+		Comment comment = getCommentById(commentId);
 
 		try {
-			commentLikeRepository.save(CommentLike.of(user, commentId));
+			commentLikeRepository.save(CommentLike.of(user, comment));
 			comment.increaseLike();
 
 			log.info("[COMMENT][LIKE] userId={}, commentId={}", userId, commentId);
 			eventPublisher.publishEvent(
-				new CommentLikedEvent(comment.getId(), comment.getUser().getId(), userId, LocalDateTime.now())
+				new CommentLikedEvent(comment.getId(), comment.getUserId(), userId, LocalDateTime.now())
 			);
 		} catch (DataIntegrityViolationException e) {
-			return;
+			throw new CommentAlreadyLikedException();
 		}
 	}
 
 	@Transactional
-	public void unlike(Long userId, Long commentId) {
-		Comment comment = commentRepository.findById(commentId)
-			.orElseThrow(() -> new IllegalArgumentException("댓글이 존재하지 않습니다."));
-		boolean liked = commentLikeRepository.existsByCommentIdAndUser_Id(commentId, userId);
-		if (!liked) {
-			return;
-		}
-		commentLikeRepository.deleteByCommentIdAndUser_Id(commentId, userId);
-		log.info("[COMMENT][UNLIKE] userId={}, commentId={}", userId, commentId);
+	public void disLike(Long userId, Long commentId) {
+		boolean liked = commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId);
+		if (!liked) throw new CommentNotLikedException();
+
+		commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId);
+		Comment comment = getCommentById(commentId);
 		comment.decreaseLike();
+
+		log.info("[COMMENT][DISLIKE] userId={}, commentId={}", userId, commentId);
 	}
 
-	public List<CommentResponseDto> getCommentsByArticleIdWithCursor(
+	public List<CommentDto> findAll(
 		Long articleId,
 		int limit,
-		String sort,
-		Long cursorId,
-		LocalDateTime cursorCreatedAt,
-		Integer cursorLikeCount
+		String orderBy,
+		String direction,
+		Long cursor,
+		LocalDateTime after,
+		Long requestUserId
 	) {
-		String s = (sort == null) ? SORT_CREATED : sort.toLowerCase();
+		List<Comment> page = orderBy.equalsIgnoreCase("like")
+			? commentRepository.findPageByArticleIdOrderByLikeCountDesc(articleId, cursor, null, limit)
+			: commentRepository.findPageByArticleIdOrderByCreatedAtDesc(articleId, cursor, after, limit);
 
-		List<Comment> page;
-		if (SORT_LIKE.equals(s)) {
-			page = commentRepository.findPageByArticleIdOrderByLikeCountDesc(
-				articleId, cursorId, cursorLikeCount, limit
-			);
-		} else {
-			page = commentRepository.findPageByArticleIdOrderByCreatedAtDesc(
-				articleId, cursorId, cursorCreatedAt, limit
-			);
+		return page.stream()
+			.map(comment -> {
+				boolean likedByMe = commentLikeRepository.existsByComment_IdAndUser_Id(comment.getId(), requestUserId);
+				return CommentDto.from(comment, likedByMe);
+			})
+			.toList();
+	}
+
+	public CommentDto findById(Long commentId, String userId) {
+		Comment comment = getCommentById(commentId);
+		boolean likedByMe = commentLikeRepository.existsByComment_IdAndUser_Id(commentId, Long.parseLong(userId));
+		return CommentDto.from(comment, likedByMe);
+	}
+
+	public CommentLikeDto findLike(Long commentId, Long userId) {
+		boolean liked = commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId);
+		return CommentLikeDto.of(commentId, userId, liked);
+	}
+
+	private void validateOwnership(Comment comment, Long userId) {
+		if (!comment.isOwnedBy(userId)) {
+			throw new CommentForbiddenException();
 		}
+	}
 
-		return page.stream().map(CommentResponseDto::from).toList();
+	private Comment getCommentById(Long commentId) {
+		return commentRepository.findById(commentId)
+			.orElseThrow(CommentNotFoundException::new);
+	}
+
+	private User getUserById(Long userId) {
+		return userRepository.findById(userId)
+			.orElseThrow(CommentUserNotFoundException::new);
+	}
+
+	private Article getArticleById(Long articleId) {
+		return articleRepository.findById(articleId)
+			.orElseThrow(CommentArticleNotFoundException::new);
 	}
 }
