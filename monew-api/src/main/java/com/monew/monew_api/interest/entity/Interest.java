@@ -30,13 +30,14 @@ public class Interest extends BaseTimeEntity {
   @OrderBy("createdAt ASC")
   private Set<InterestKeyword> keywords = new HashSet<>();
 
-  private Interest(String name, int subscriberCount){
+  private Interest(String name, int subscriberCount) {
     this.name = name;
     this.subscriberCount = subscriberCount;
   }
 
   public static Interest create(String interestName) {
-    return new Interest(interestName, 0);}
+    return new Interest(interestName, 0);
+  }
 
   public InterestKeyword addKeyword(Keyword keyword) {
     InterestKeyword interestKeyword = InterestKeyword.create(this, keyword);

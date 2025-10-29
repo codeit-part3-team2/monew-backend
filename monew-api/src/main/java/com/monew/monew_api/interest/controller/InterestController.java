@@ -34,7 +34,7 @@ public class InterestController {
   @PostMapping
   public ResponseEntity<InterestDto> createInterest(
       @RequestBody @Valid InterestRegisterRequest request
-  ){
+  ) {
     log.info("[API 요청] POST/api/interests/ - 관심사 등록 요청 : {}", request);
     InterestDto response = interestService.createInterest(request);
     log.info("[API 응답] POST/api/interests/ - 관심사 등록 응답 : {}", response);
@@ -46,9 +46,9 @@ public class InterestController {
   public ResponseEntity<CursorPageResponseInterestDto> getInterests(
       @RequestHeader("Monew-Request-User-Id") Long userId,
       @ParameterObject @ModelAttribute CursorPageRequestInterestDto request
-  ){
+  ) {
     log.info("[API 요청] GET/api/interests/ - 관심사 조회 요청 : {}", request);
-    CursorPageResponseInterestDto response = interestService.getInterests(userId,request);
+    CursorPageResponseInterestDto response = interestService.getInterests(userId, request);
     log.info("[API 응답] GET/api/interests/ - 관심사 조회 응답 : {}", response);
     return ResponseEntity.ok(response);
   }
@@ -57,7 +57,7 @@ public class InterestController {
   @DeleteMapping("/{interestId}")
   public ResponseEntity<Void> deleteInterest(
       @PathVariable Long interestId
-  ){
+  ) {
     log.info("[API 요청] DELETE/api/interests/{} - 관심사 삭제 요청", interestId);
     interestService.deleteInterest(interestId);
     log.info("[API 응답] DELETE/api/interests/{} - 관심사 삭제 응답", interestId);
@@ -69,7 +69,7 @@ public class InterestController {
   public ResponseEntity<InterestDto> updateInterestKeywords(
       @PathVariable Long interestId,
       @RequestBody InterestUpdateRequest request
-  ){
+  ) {
     log.info("[API 요청] PATCH/api/interests/{} - 관심사 키워드 수정 요청 : {}", interestId, request);
     InterestDto response = interestService
         .updateInterestKeywords(request, interestId);

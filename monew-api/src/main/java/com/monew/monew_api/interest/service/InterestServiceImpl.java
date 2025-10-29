@@ -52,7 +52,7 @@ public class InterestServiceImpl implements InterestService {
 
     // 유사도 검사
     String similarName = findSimilarInterestName(interestName);
-    if(similarName != null) {
+    if (similarName != null) {
       Map<String, Object> details = new HashMap<>();
       details.put("name", similarName);
       log.warn("유사한 관심사 이름: {}", similarName);
@@ -63,7 +63,7 @@ public class InterestServiceImpl implements InterestService {
 
     // 키워드 저장
     Set<String> keywordSet = new HashSet<>(request.keywords());
-    for(String keyword : keywordSet) {
+    for (String keyword : keywordSet) {
       Keyword getKeyword = keywordRepository.findByKeyword(keyword)
           .orElseGet(() -> keywordRepository.save(new Keyword(keyword)));
       interest.addKeyword(getKeyword);
@@ -90,7 +90,8 @@ public class InterestServiceImpl implements InterestService {
     userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
     final String keyword = (request.keyword() == null) ? null : request.keyword();
-    final InterestOrderBy orderBy = (request.orderBy() == null) ? InterestOrderBy.name : request.orderBy();
+    final InterestOrderBy orderBy =
+        (request.orderBy() == null) ? InterestOrderBy.name : request.orderBy();
     final Direction direction = (request.direction() == null) ? Direction.ASC : request.direction();
     final String cursor = request.cursor();
     final LocalDateTime after = request.after();
@@ -106,15 +107,15 @@ public class InterestServiceImpl implements InterestService {
     List<InterestDto> interestDtos = new ArrayList<>(interests.size());
     for (Interest interest : interests) {
       List<String> keywords = new ArrayList<>();
-      for(InterestKeyword ik : interest.getKeywords()) {
+      for (InterestKeyword ik : interest.getKeywords()) {
         String name = ik.getKeyword().getKeyword();
         keywords.add(name);
       }
       // ⭐️⭐️ 구독 여부 확인 조회 코드 필요!!!!
-      interestDtos.add(interestMapper.toInterestDto(interest,keywords,false));
+      interestDtos.add(interestMapper.toInterestDto(interest, keywords, false));
     }
 
-    Long totalElements = interestRepository.countFilteredTotalElements(keyword, orderBy,direction);
+    Long totalElements = interestRepository.countFilteredTotalElements(keyword, orderBy, direction);
 
     boolean hasNext = slices.hasNext();
     String nextCursor = null;
@@ -131,7 +132,8 @@ public class InterestServiceImpl implements InterestService {
         }
         case subscriberCount -> nextCursor = String.valueOf(last.getSubscriberCount());
         default -> nextCursor = String.valueOf(last.getId());
-      } nextAfter = last.getCreatedAt();
+      }
+      nextAfter = last.getCreatedAt();
     }
 
     return new CursorPageResponseInterestDto(
@@ -146,7 +148,8 @@ public class InterestServiceImpl implements InterestService {
     log.info("interestId = {}, 관심사 키워드 수정 요청 : {}", interestId, request);
 
 //    userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
-    Interest interest =  interestRepository.findById(interestId).orElseThrow(InterestNotFoundException::new);
+    Interest interest = interestRepository.findById(interestId)
+        .orElseThrow(InterestNotFoundException::new);
 
     updateKeywords(interest, request.keywords());
 
@@ -185,7 +188,7 @@ public class InterestServiceImpl implements InterestService {
 
 
   private double calculateSimilarity(String name1, String name2) {
-    if(name1 == null || name2 == null) {
+    if (name1 == null || name2 == null) {
       return 0.0;
     }
     LevenshteinDistance levenshtein = LevenshteinDistance.getDefaultInstance();
@@ -225,7 +228,9 @@ public class InterestServiceImpl implements InterestService {
 
 
   private void removeOrphanKeywords(Interest interest, Map<String, InterestKeyword> toRemove) {
-    if (toRemove.isEmpty()) {return;}
+    if (toRemove.isEmpty()) {
+      return;
+    }
     List<Keyword> removedKeyword = new ArrayList<>();
 
     for (InterestKeyword interestKeyword : toRemove.values()) {
