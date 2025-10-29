@@ -132,6 +132,7 @@ public class UserActivityServiceImpl implements UserActivityService {
             log.info("MongoDB 캐시 저장 완료: userId={}", dto.getId());
         } catch (Exception e) {
             log.error("MongoDB 캐시 저장 실패: userId={}", dto.getId(), e);
+            throw new RuntimeException("캐시 저장에 실패했습니다.", e);
         }
     }
 
