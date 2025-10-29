@@ -1,6 +1,7 @@
 package com.monew.monew_api.article.entity;
 
 import com.monew.monew_api.common.entity.BaseIdEntity;
+import com.monew.monew_api.interest.entity.Interest;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
