@@ -2,24 +2,28 @@ package com.monew.monew_api.useractivity.service.Impl;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.monew.monew_api.comments.entity.Comment;
+import com.monew.monew_api.comments.entity.CommentLike;
 import com.monew.monew_api.common.exception.user.UserNotFoundException;
+import com.monew.monew_api.subscribe.entit.Subscribe;
+import com.monew.monew_api.useractivity.document.UserActivityCacheDocument;
 import com.monew.monew_api.useractivity.dto.*;
 import com.monew.monew_api.useractivity.mapper.UserActivityMapper;
+import com.monew.monew_api.useractivity.repository.UserActivityCacheRepository;
 import com.monew.monew_api.useractivity.repository.UserActivityRepository;
 import com.monew.monew_api.useractivity.service.UserActivityService;
 import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.domain.user.repository.UserRepository;
-import com.monew.monew_api.useractivity.tempEntity.Comment;
-import com.monew.monew_api.useractivity.tempEntity.CommentLike;
-import com.monew.monew_api.useractivity.tempEntity.Subscription;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Service
@@ -29,10 +33,12 @@ public class UserActivityServiceImpl implements UserActivityService {
 
     private final UserRepository userRepository;
     private final UserActivityRepository activityRepository;
+    private final UserActivityCacheRepository cacheRepository;
     private final UserActivityMapper mapper;
     private final ObjectMapper objectMapper;
 
     @Override
+    @Transactional(readOnly = true)
     public UserActivityDto getUserActivity(String userId) {
         log.info("사용자 활동내역 조회 시작: userId={}", userId);
 
@@ -41,7 +47,7 @@ public class UserActivityServiceImpl implements UserActivityService {
         User user = userRepository.findById(userIdLong)
                 .orElseThrow(UserNotFoundException::new);
 
-        List<Subscription> subscriptions = activityRepository.findSubscriptionsByUserId(userIdLong);
+        List<Subscribe> subscriptions = activityRepository.findSubscriptionsByUserId(userIdLong);
         log.info("구독 정보 조회 완료: {}건", subscriptions.size());
 
         List<Comment> comments = activityRepository.findRecentCommentsByUserId(userIdLong);
@@ -64,9 +70,10 @@ public class UserActivityServiceImpl implements UserActivityService {
     }
 
     /**
-     * 추가: 단일 쿼리 방식 (성능 테스트용)
+     * 추가: 단일 쿼리 방식
      */
     @Override
+    @Transactional(readOnly = true)
     public UserActivityDto getUserActivitySingleQuery(String userId) {
         log.info("사용자 활동내역 조회 시작 (단일 쿼리): userId={}", userId);
 
@@ -107,17 +114,6 @@ public class UserActivityServiceImpl implements UserActivityService {
             String email = (String) rawData[1];
             String nickname = (String) rawData[2];
             LocalDateTime userCreatedAt = ((Timestamp) rawData[3]).toLocalDateTime();
-
-            log.info("===== JSON 데이터 디버깅 시작 =====");
-            log.info("rawData[4] 타입: {}", rawData[4].getClass().getName());
-            log.info("rawData[4] 값: {}", rawData[4]);
-            log.info("rawData[5] 타입: {}", rawData[5].getClass().getName());
-            log.info("rawData[5] 값: {}", rawData[5]);
-            log.info("rawData[6] 타입: {}", rawData[6].getClass().getName());
-            log.info("rawData[6] 값: {}", rawData[6]);
-            log.info("rawData[7] 타입: {}", rawData[7].getClass().getName());
-            log.info("rawData[7] 값: {}", rawData[7]);
-            log.info("===== JSON 데이터 디버깅 끝 =====");
 
             // JSON 문자열 추출
             String subscriptionsJson = rawData[4].toString();

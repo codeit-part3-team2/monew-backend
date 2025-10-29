@@ -18,21 +18,11 @@ public class UserActivityController {
 
     private final UserActivityService userActivityService;
 
-    /*
-     single query 방식으로 사용자 활동내역 조회
-     */
-    @GetMapping("/{userId}/temp")
-    public ResponseEntity<UserActivityDto> getUserActivity2(@PathVariable String userId) {
-        log.info("활동내역 조회 요청: userId={}", userId);
-
-        UserActivityDto activity = userActivityService.getUserActivitySingleQuery(userId);
-
-        return ResponseEntity.ok(activity);
-    }
 
     /*
-     여러 query 방식으로 사용자 활동내역 조회
-     사용시 엔드포인트와 메서드명 변경 필요
+     mongoDB 사용 시 getUserActivityWithCache 메서드
+     단일 쿼리 사용시 getUserActivitySingleQuery 메서드 (네이티브 쿼리)
+     여러 쿼리 사용시 getUserActivity 메서드
      */
     @GetMapping("/{userId}")
     public ResponseEntity<UserActivityDto> getUserActivity(@PathVariable String userId) {
