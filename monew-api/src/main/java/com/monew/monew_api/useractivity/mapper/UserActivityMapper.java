@@ -1,12 +1,17 @@
 package com.monew.monew_api.useractivity.mapper;
 
-import com.monew.monew_api.article.entity.Interest;
-import com.monew.monew_api.useractivity.dto.*;
+import com.monew.monew_api.comments.entity.Comment;
+import com.monew.monew_api.comments.entity.CommentLike;
 import com.monew.monew_api.domain.user.User;
-import com.monew.monew_api.useractivity.tempEntity.Comment;
-import com.monew.monew_api.useractivity.tempEntity.CommentLike;
-import com.monew.monew_api.useractivity.tempEntity.Subscription;
-import org.mapstruct.*;
+import com.monew.monew_api.interest.entity.Interest;
+import com.monew.monew_api.subscribe.entit.Subscribe;
+import com.monew.monew_api.useractivity.document.UserActivityCacheDocument;
+import com.monew.monew_api.useractivity.dto.CommentActivityDto;
+import com.monew.monew_api.useractivity.dto.CommentLikeActivityDto;
+import com.monew.monew_api.useractivity.dto.SubscribesActivityDto;
+import com.monew.monew_api.useractivity.dto.UserActivityDto;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -30,9 +35,9 @@ public interface UserActivityMapper {
     @Mapping(target = "interestKeywords", expression = "java(mapKeywords(subscription.getInterest()))")
     @Mapping(target = "interestSubscriberCount", source = "interest.subscriberCount")
     @Mapping(target = "createdAt", source = "createdAt")
-    SubscribesActivityDto toSubscriptionDto(Subscription subscription);
+    SubscribesActivityDto toSubscriptionDto(Subscribe subscription);
 
-    List<SubscribesActivityDto> toSubscriptionDtos(List<Subscription> subscriptions);
+    List<SubscribesActivityDto> toSubscriptionDtos(List<Subscribe> subscriptions);
 
     @Mapping(target = "id", expression = "java(String.valueOf(comment.getId()))")
     @Mapping(target = "articleId", expression = "java(String.valueOf(comment.getArticle().getId()))")
@@ -60,24 +65,14 @@ public interface UserActivityMapper {
 
     List<CommentLikeActivityDto> toCommentLikeDtos(List<CommentLike> commentLikes);
 
-//    @Mapping(target = "id", expression = "java(String.valueOf(articleView.getId()))")
-//    @Mapping(target = "viewedBy", expression = "java(String.valueOf(articleView.getUserId()))")
-//    @Mapping(target = "createdAt", source = "createdAt")
-//    @Mapping(target = "articleId", expression = "java(String.valueOf(articleView.getArticle().getId()))")
-//    @Mapping(target = "source", source = "article.source")
-//    @Mapping(target = "sourceUrl", source = "article.sourceUrl")
-//    @Mapping(target = "articleTitle", source = "article.title")
-//    @Mapping(target = "articlePublishedDate", source = "article.publishDate")
-//    @Mapping(target = "articleSummary", source = "article.summary")
-//    @Mapping(target = "articleCommentCount", source = "article.commentCount")
-//    @Mapping(target = "articleViewCount", source = "article.viewCount")
-//    ArticleViewActivityDto toArticleViewDto(ArticleView articleView);
-//
-//    List<ArticleViewActivityDto> toArticleViewActivityDtos(List<ArticleView> articleViews);
+    @Mapping(target = "cachedAt", expression = "java(java.time.LocalDateTime.now())")
+    UserActivityCacheDocument toDocument(UserActivityDto dto);
+
+    UserActivityDto toDto(UserActivityCacheDocument document);
 
     default List<String> mapKeywords(Interest interest) {
-        return interest.getInterestsKeywords().stream()
-                .map(ik -> ik.getKeywordEntity().getKeyword())
+        return interest.getKeywords().stream()
+                .map(ik -> ik.getKeyword().getKeyword())
                 .collect(Collectors.toList());
     }
 }
