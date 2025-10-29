@@ -14,5 +14,6 @@ public record CursorPageRequestInterestDto(
     @NotNull Direction direction, // 정렬 방향 (ASC, DESC)
     String cursor, // 커서 값
     LocalDateTime after, //
-    @NotNull int limit // 커서 페이지 크기
-) {}
+    @NotNull Integer limit // 커서 페이지 크기
+){
+}

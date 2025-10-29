@@ -9,8 +9,12 @@ import com.monew.monew_api.interest.dto.response.InterestDto;
 public interface InterestService {
 
   InterestDto createInterest(InterestRegisterRequest request);
-  CursorPageResponseInterestDto getInterests(Long userId, CursorPageRequestInterestDto cursorRequest);
+
+  CursorPageResponseInterestDto getInterests(Long userId,
+      CursorPageRequestInterestDto cursorRequest);
+
   InterestDto updateInterestKeywords(InterestUpdateRequest request, Long interestId);
+
   void deleteInterest(Long interestId);
   // 구독 관련 메서드 추후에 구현 예정!!!
   //  구독

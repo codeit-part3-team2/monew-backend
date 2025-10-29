@@ -34,19 +34,25 @@ public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
 
     BooleanBuilder builder = new BooleanBuilder();
 
-    if (after != null){
+    if (after != null) {
       builder.and(i.updatedAt.goe(after));
     }
 
     // 커서 조건
     if (cursor != null && !cursor.isBlank()) {
       if (sortBy == InterestOrderBy.name) {
-        if (direction == Direction.ASC) builder.and(i.name.gt(cursor));
-        else builder.and(i.name.lt(cursor));
+        if (direction == Direction.ASC) {
+          builder.and(i.name.gt(cursor));
+        } else {
+          builder.and(i.name.lt(cursor));
+        }
       } else if (sortBy == InterestOrderBy.subscriberCount) {
         int v = Integer.parseInt(cursor);
-        if (direction == Direction.ASC) builder.and(i.subscriberCount.gt(v));
-        else builder.and(i.subscriberCount.lt(v));
+        if (direction == Direction.ASC) {
+          builder.and(i.subscriberCount.gt(v));
+        } else {
+          builder.and(i.subscriberCount.lt(v));
+        }
       }
     }
 
@@ -68,7 +74,6 @@ public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
     JPAQuery<Interest> query = queryFactory
         .selectFrom(i)
         .distinct();
-
 
     // 검색어가 있는 경우
     if (searchKeyword != null && !searchKeyword.isBlank()) {
@@ -93,14 +98,17 @@ public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
     List<Interest> results = query.limit(limit + 1).fetch();
 
     boolean hasNext = results.size() > limit;
-    if (hasNext) results = results.subList(0, limit);
+    if (hasNext) {
+      results = results.subList(0, limit);
+    }
 
     Pageable pageable = PageRequest.of(0, limit);
     return new SliceImpl<>(results, pageable, hasNext);
   }
 
   @Override
-  public long countFilteredTotalElements(String keyword, InterestOrderBy sortBy, Direction direction) {
+  public long countFilteredTotalElements(String keyword, InterestOrderBy sortBy,
+      Direction direction) {
 
     BooleanBuilder where = new BooleanBuilder();
 

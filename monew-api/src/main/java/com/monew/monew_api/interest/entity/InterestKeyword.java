@@ -17,16 +17,16 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class InterestKeyword extends BaseTimeEntity {
 
-@ManyToOne(fetch = FetchType.LAZY)
-@JoinColumn(name = "interest_id", nullable = false)
- private Interest interest;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "interest_id", nullable = false)
+  private Interest interest;
 
-@ManyToOne(fetch = FetchType.LAZY)
-@JoinColumn(name = "keyword_id", nullable = false)
- private Keyword keyword;
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "keyword_id", nullable = false)
+  private Keyword keyword;
 
-public static InterestKeyword create(Interest interest, Keyword keyword) {
-  return new InterestKeyword(interest, keyword);
+  public static InterestKeyword create(Interest interest, Keyword keyword) {
+    return new InterestKeyword(interest, keyword);
   }
 
 }
