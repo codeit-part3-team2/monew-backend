@@ -24,7 +24,9 @@ public enum ErrorCode {
     COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "댓글 정보를 찾을 수 없습니다."),
 
     // 알림 - NOTIFICATION
-    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "알림 정보를 찾을 수 없습니다.");
+    NOTIFICATION_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "알림 정보를 찾을 수 없습니다."),
+    NOTIFICATION_ACCESS_DENIED(HttpStatus.FORBIDDEN.value(), "해당 알림에 접근할 권한이 없습니다."),
+    NOTIFICATION_ALREADY_CONFIRMED(HttpStatus.CONFLICT.value(), "이미 확인된 알림입니다.");
 
     private final int status;
     private final String message;
