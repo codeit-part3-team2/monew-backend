@@ -1,8 +1,5 @@
 package com.monew.monew_api.comments.dto;
 
-import com.monew.monew_api.common.exception.comment.CommentInvalidArticleIdException;
-import com.monew.monew_api.common.exception.comment.CommentInvalidUserIdException;
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;

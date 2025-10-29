@@ -10,10 +10,6 @@ import com.monew.monew_api.comments.entity.Comment;
 public interface CommentRepository extends JpaRepository<Comment, Long>, CommentRepositoryCustom {
 
 	@Modifying(clearAutomatically = true, flushAutomatically = true)
-	@Query("update Comment c set c.likeCount = c.likeCount + 1 where c.id = :id")
-	int incLikeCount(@Param("id") Long id);
-
-	@Modifying(clearAutomatically = true, flushAutomatically = true)
 	@Query("""
          update Comment c 
          set c.likeCount = case when c.likeCount > 0 then c.likeCount - 1 else 0 end

@@ -5,11 +5,11 @@ import java.time.LocalDateTime;
 import com.monew.monew_api.comments.entity.CommentLike;
 
 public record CommentLikeDto(
-	String id,
-	String commentId,
-	String articleId,
-	String likedBy,
-	String commentUserId,
+	Long id,
+	Long commentId,
+	Long articleId,
+	Long likedBy,
+	Long commentUserId,
 	String commentUserNickname,
 	String commentContent,
 	int commentLikeCount,
@@ -19,11 +19,11 @@ public record CommentLikeDto(
 
 	public static CommentLikeDto from(CommentLike like) {
 		return new CommentLikeDto(
-			String.valueOf(like.getId()),
-			String.valueOf(like.getComment().getId()),
-			String.valueOf(like.getComment().getArticleId()),
-			String.valueOf(like.getUser().getId()),
-			String.valueOf(like.getComment().getUserId()),
+			like.getId(),
+			like.getComment().getId(),
+			like.getComment().getArticleId(),
+			like.getUser().getId(),
+			like.getComment().getUserId(),
 			like.getComment().getUser().getNickname(),
 			like.getComment().getContent(),
 			like.getComment().getLikeCount(),
@@ -35,9 +35,9 @@ public record CommentLikeDto(
 	public static CommentLikeDto of(Long commentId, Long userId) {
 		return new CommentLikeDto(
 			null,
-			String.valueOf(commentId),
+			commentId,
 			null,
-			String.valueOf(userId),
+			userId,
 			null, null, null,
 			-1,
 			null,

@@ -3,9 +3,9 @@ package com.monew.monew_api.comments.dto;
 import com.monew.monew_api.comments.entity.Comment;
 
 public record CommentDto(
-	String id,
-	String articleId,
-	String userId,
+	Long id,
+	Long articleId,
+	Long userId,
 	String userNickname,
 	String content,
 	int likeCount,
@@ -16,9 +16,9 @@ public record CommentDto(
 
 	public static CommentDto from(Comment comment, boolean likedByMe) {
 		return new CommentDto(
-			String.valueOf(comment.getId()),
-			String.valueOf(comment.getArticle().getId()),
-			String.valueOf(comment.getUser().getId()),
+			comment.getId(),
+			comment.getArticle().getId(),
+			comment.getUser().getId(),
 			comment.getUser().getNickname(),
 			comment.getContent(),
 			comment.getLikeCount(),
@@ -32,9 +32,9 @@ public record CommentDto(
 		boolean isMyComment = comment.getUser().getId().equals(requestUserId);
 
 		return new CommentDto(
-			String.valueOf(comment.getId()),
-			String.valueOf(comment.getArticle().getId()),
-			String.valueOf(comment.getUser().getId()),
+			comment.getId(),
+			comment.getArticle().getId(),
+			comment.getUser().getId(),
 			comment.getUser().getNickname(),
 			comment.getContent(),
 			comment.getLikeCount(),

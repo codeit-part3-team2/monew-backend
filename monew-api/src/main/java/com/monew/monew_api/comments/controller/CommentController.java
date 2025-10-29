@@ -39,7 +39,7 @@ public class CommentController {
 		@RequestHeader("Monew-Request-User-ID") Long userIdHeader,
 		@RequestParam(required = false) Long articleId,
 		@RequestParam String orderBy,
-		@RequestParam String direction,
+		@RequestParam(required = false) String direction,
 		@RequestParam(required = false) String cursor,
 		@RequestParam(required = false) String after,
 		@RequestParam int limit
@@ -54,8 +54,6 @@ public class CommentController {
 				if (parts.length == 2) {
 					cursorLikeCount = safeParseInt(parts[0]);
 					cursorId = safeParseLong(parts[1]);
-				} else {
-
 				}
 			} else {
 				cursorId = safeParseLong(cursor);
@@ -88,10 +86,8 @@ public class CommentController {
 
 	@DeleteMapping("/{commentId}")
 	public ResponseEntity<Void> delete(
-		// @RequestHeader("Monew-Request-User-ID") Long userIdHeader,
 		@PathVariable Long commentId
 	) {
-		// commentService.delete(userIdHeader, commentId);
 		commentService.delete(commentId);
 		return ResponseEntity.noContent().build();
 	}

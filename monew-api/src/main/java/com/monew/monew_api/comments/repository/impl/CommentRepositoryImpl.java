@@ -76,12 +76,6 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 
 	}
 
-	private BooleanExpression articleIdEq(Long articleId) {
-		return articleId != null ? c.article.id.eq(articleId) : null;
-	}
-
-
-
 	private BooleanExpression buildCreatedAtCursor(
 		QComment c,
 		Long cursorId,
