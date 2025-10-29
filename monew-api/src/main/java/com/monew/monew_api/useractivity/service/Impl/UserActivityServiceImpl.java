@@ -104,6 +104,37 @@ public class UserActivityServiceImpl implements UserActivityService {
         return result;
     }
 
+    @Override
+    public UserActivityDto getUserActivityWithCache(String userId) {
+        log.info("사용자 활동내역 조회 시작 (캐시): userId={}", userId);
+
+        Optional<UserActivityCacheDocument> cached = cacheRepository.findById(userId);
+
+        if (cached.isPresent()) {
+            log.info("Cache HIT: userId={}", userId);
+            return mapper.toDto(cached.get());
+        }
+
+        log.info("Cache MISS: userId={}", userId);
+
+        UserActivityDto result = getUserActivity(userId);
+
+        saveToCache(result);
+
+        log.info("사용자 활동내역 조회 완료 (캐시): userId={}", userId);
+        return result;
+    }
+
+    private void saveToCache(UserActivityDto dto) {
+        try {
+            UserActivityCacheDocument document = mapper.toDocument(dto);
+            cacheRepository.save(document);
+            log.info("MongoDB 캐시 저장 완료: userId={}", dto.getId());
+        } catch (Exception e) {
+            log.error("MongoDB 캐시 저장 실패: userId={}", dto.getId(), e);
+        }
+    }
+
     /**
      * Object[] Raw 데이터를 UserActivityDto로 변환
      * Object[] 구조: { userId, email, nickname, createdAt, subscriptionsJson, commentsJson, likesJson, viewsJson }
