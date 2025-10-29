@@ -1,0 +1,31 @@
+package com.monew.monew_api.subscribe.entit;
+
+import com.monew.monew_api.common.entity.BaseCreatedEntity;
+import com.monew.monew_api.common.entity.BaseTimeEntity;
+import com.monew.monew_api.interest.entity.Interest;
+import com.monew.monew_api.domain.user.User;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "subscribes")
+@Getter
+@AllArgsConstructor
+@NoArgsConstructor
+public class Subscribe extends BaseCreatedEntity {
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "interest_id",  nullable = false)
+  private Interest interest;
+
+  @ManyToOne(fetch = FetchType.LAZY)
+  @JoinColumn(name = "user_id", nullable = false)
+  private User user;
+
+}
