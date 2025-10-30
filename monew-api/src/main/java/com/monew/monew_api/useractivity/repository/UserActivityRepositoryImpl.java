@@ -3,7 +3,7 @@ package com.monew.monew_api.useractivity.repository;
 import com.monew.monew_api.comments.entity.Comment;
 import com.monew.monew_api.comments.entity.CommentLike;
 import com.monew.monew_api.interest.entity.QKeyword;
-import com.monew.monew_api.subscribe.entit.Subscribe;
+import com.monew.monew_api.subscribe.entity.Subscribe;
 import com.monew.monew_api.useractivity.dto.ArticleViewActivityDto;
 import com.monew.monew_api.useractivity.repository.projection.UserActivityRaw;
 
@@ -25,7 +25,7 @@ import static com.monew.monew_api.comments.entity.QCommentLike.commentLike;
 import static com.monew.monew_api.domain.user.QUser.user;
 import static com.monew.monew_api.interest.entity.QInterest.interest;
 import static com.monew.monew_api.interest.entity.QInterestKeyword.interestKeyword;
-import static com.monew.monew_api.subscribe.entit.QSubscribe.subscribe;
+import static com.monew.monew_api.subscribe.entity.QSubscribe.subscribe;
 
 
 @Repository

@@ -6,7 +6,7 @@ TODO: Entity 클래스 완성 되면 import 수정
 
 import com.monew.monew_api.comments.entity.Comment;
 import com.monew.monew_api.comments.entity.CommentLike;
-import com.monew.monew_api.subscribe.entit.Subscribe;
+import com.monew.monew_api.subscribe.entity.Subscribe;
 import com.monew.monew_api.useractivity.dto.ArticleViewActivityDto;
 import com.monew.monew_api.useractivity.repository.projection.UserActivityRaw;
 

@@ -1,29 +1,26 @@
 package com.monew.monew_api.useractivity.service.Impl;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.monew.monew_api.comments.entity.Comment;
 import com.monew.monew_api.comments.entity.CommentLike;
 import com.monew.monew_api.common.exception.user.UserNotFoundException;
-import com.monew.monew_api.subscribe.entit.Subscribe;
+import com.monew.monew_api.domain.user.User;
+import com.monew.monew_api.domain.user.repository.UserRepository;
+import com.monew.monew_api.subscribe.entity.Subscribe;
 import com.monew.monew_api.useractivity.document.UserActivityCacheDocument;
-import com.monew.monew_api.useractivity.dto.*;
+import com.monew.monew_api.useractivity.dto.ArticleViewActivityDto;
+import com.monew.monew_api.useractivity.dto.UserActivityDto;
 import com.monew.monew_api.useractivity.mapper.UserActivityMapper;
 import com.monew.monew_api.useractivity.mapper.UserActivityRawMapper;
 import com.monew.monew_api.useractivity.repository.UserActivityCacheRepository;
 import com.monew.monew_api.useractivity.repository.UserActivityRepository;
 import com.monew.monew_api.useractivity.repository.projection.UserActivityRaw;
 import com.monew.monew_api.useractivity.service.UserActivityService;
-import com.monew.monew_api.domain.user.User;
-import com.monew.monew_api.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.mongodb.core.messaging.Subscription;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Timestamp;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 

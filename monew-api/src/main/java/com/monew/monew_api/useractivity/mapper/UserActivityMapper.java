@@ -4,7 +4,7 @@ import com.monew.monew_api.comments.entity.Comment;
 import com.monew.monew_api.comments.entity.CommentLike;
 import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.interest.entity.Interest;
-import com.monew.monew_api.subscribe.entit.Subscribe;
+import com.monew.monew_api.subscribe.entity.Subscribe;
 import com.monew.monew_api.useractivity.document.UserActivityCacheDocument;
 import com.monew.monew_api.useractivity.dto.*;
 import org.mapstruct.Mapper;
