@@ -25,10 +25,6 @@ public interface UserActivityRepository {
     List<ArticleViewActivityDto> findRecentViewsByUserId(Long userId);
 
     /*
-        활동 내역을 단일 쿼리로 처리
-     */
-    Object[] findUserActivitiesByUserId(Long userId);
-    /*
         record 사용한 단일 쿼리
      */
     UserActivityRaw findUserActivityRaw(Long userId);
