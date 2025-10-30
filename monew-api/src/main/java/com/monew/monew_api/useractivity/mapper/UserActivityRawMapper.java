@@ -27,31 +27,28 @@ public class UserActivityRawMapper {
             return null;
         }
 
-        UserActivityDto dto = new UserActivityDto();
-        dto.setId(String.valueOf(record.id()));
-        dto.setEmail(record.email());
-        dto.setNickname(record.nickname());
-        dto.setCreatedAt(record.createdAt());
-
-        // JSON String → List 변환
-        dto.setSubscriptions(parseJsonList(
-                record.subscriptions(),
-                new TypeReference<List<SubscribesActivityDto>>() {}
-        ));
-        dto.setComments(parseJsonList(
-                record.comments(),
-                new TypeReference<List<CommentActivityDto>>() {}
-        ));
-        dto.setCommentLikes(parseJsonList(
-                record.likes(),
-                new TypeReference<List<CommentLikeActivityDto>>() {}
-        ));
-        dto.setArticleViews(parseJsonList(
-                record.views(),
-                new TypeReference<List<ArticleViewActivityDto>>() {}
-        ));
-
-        return dto;
+        return UserActivityDto.builder()
+                .id(String.valueOf(record.id()))
+                .email(record.email())
+                .nickname(record.nickname())
+                .createdAt(record.createdAt())
+                .subscriptions(parseJsonList(
+                        record.subscriptions(),
+                        new TypeReference<List<SubscribesActivityDto>>() {}
+                ))
+                .comments(parseJsonList(
+                        record.comments(),
+                        new TypeReference<List<CommentActivityDto>>() {}
+                ))
+                .commentLikes(parseJsonList(
+                        record.likes(),
+                        new TypeReference<List<CommentLikeActivityDto>>() {}
+                ))
+                .articleViews(parseJsonList(
+                        record.views(),
+                        new TypeReference<List<ArticleViewActivityDto>>() {}
+                ))
+                .build();
     }
 
     /**

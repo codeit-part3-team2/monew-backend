@@ -62,11 +62,7 @@ public class UserActivityServiceImpl implements UserActivityService {
         List<ArticleViewActivityDto> views = activityRepository.findRecentViewsByUserId(userIdLong);
         log.info("최근 조회 기사 조회 완료: {}건", views.size());
 
-        UserActivityDto result = mapper.toUserActivityDto(user);
-        result.setSubscriptions(mapper.toSubscriptionDtos(subscriptions));
-        result.setComments(mapper.toCommentDtos(comments));
-        result.setCommentLikes(mapper.toCommentLikeDtos(likes));
-        result.setArticleViews(views);
+        UserActivityDto result = mapper.toUserActivityDto(user, subscriptions, comments, likes, views);
 
         log.info("사용자 활동내역 조회 완료: userId={}", userId);
         return result;

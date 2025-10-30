@@ -6,10 +6,7 @@ import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.interest.entity.Interest;
 import com.monew.monew_api.subscribe.entit.Subscribe;
 import com.monew.monew_api.useractivity.document.UserActivityCacheDocument;
-import com.monew.monew_api.useractivity.dto.CommentActivityDto;
-import com.monew.monew_api.useractivity.dto.CommentLikeActivityDto;
-import com.monew.monew_api.useractivity.dto.SubscribesActivityDto;
-import com.monew.monew_api.useractivity.dto.UserActivityDto;
+import com.monew.monew_api.useractivity.dto.*;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -19,15 +16,24 @@ import java.util.stream.Collectors;
 @Mapper(componentModel = "spring")
 public interface UserActivityMapper {
 
-    @Mapping(target = "id", expression = "java(String.valueOf(user.getId()))")
-    @Mapping(target = "email", source = "email")
-    @Mapping(target = "nickname", source = "nickname")
-    @Mapping(target = "createdAt", source = "createdAt")
-    @Mapping(target = "subscriptions", ignore = true)
-    @Mapping(target = "comments", ignore = true)
-    @Mapping(target = "commentLikes", ignore = true)
-    @Mapping(target = "articleViews", ignore = true)
-    UserActivityDto toUserActivityDto(User user);
+    default UserActivityDto toUserActivityDto(
+            User user,
+            List<Subscribe> subscriptions,
+            List<Comment> comments,
+            List<CommentLike> likes,
+            List<ArticleViewActivityDto> views
+    ) {
+        return UserActivityDto.builder()
+                .id(String.valueOf(user.getId()))
+                .email(user.getEmail())
+                .nickname(user.getNickname())
+                .createdAt(user.getCreatedAt())
+                .subscriptions(toSubscriptionDtos(subscriptions))
+                .comments(toCommentDtos(comments))
+                .commentLikes(toCommentLikeDtos(likes))
+                .articleViews(views)
+                .build();
+    }
 
     @Mapping(target = "id", expression = "java(String.valueOf(subscription.getId()))")
     @Mapping(target = "interestId", expression = "java(String.valueOf(subscription.getInterest().getId()))")
