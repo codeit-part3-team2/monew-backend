@@ -28,7 +28,7 @@ public class UserActivityController {
     public ResponseEntity<UserActivityDto> getUserActivity(@PathVariable String userId) {
         log.info("활동내역 조회 요청: userId={}", userId);
 
-        UserActivityDto activity = userActivityService.getUserActivity(userId);
+        UserActivityDto activity = userActivityService.getUserActivitySingleQuery(userId);
 
         return ResponseEntity.ok(activity);
     }

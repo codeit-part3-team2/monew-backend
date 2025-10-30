@@ -9,8 +9,10 @@ import com.monew.monew_api.subscribe.entit.Subscribe;
 import com.monew.monew_api.useractivity.document.UserActivityCacheDocument;
 import com.monew.monew_api.useractivity.dto.*;
 import com.monew.monew_api.useractivity.mapper.UserActivityMapper;
+import com.monew.monew_api.useractivity.mapper.UserActivityRawMapper;
 import com.monew.monew_api.useractivity.repository.UserActivityCacheRepository;
 import com.monew.monew_api.useractivity.repository.UserActivityRepository;
+import com.monew.monew_api.useractivity.repository.projection.UserActivityRaw;
 import com.monew.monew_api.useractivity.service.UserActivityService;
 import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.domain.user.repository.UserRepository;
@@ -35,6 +37,7 @@ public class UserActivityServiceImpl implements UserActivityService {
     private final UserActivityRepository activityRepository;
     private final UserActivityCacheRepository cacheRepository;
     private final UserActivityMapper mapper;
+    private final UserActivityRawMapper rawMapper;
     private final ObjectMapper objectMapper;
 
     @Override
@@ -75,24 +78,19 @@ public class UserActivityServiceImpl implements UserActivityService {
     @Override
     @Transactional(readOnly = true)
     public UserActivityDto getUserActivitySingleQuery(String userId) {
-        log.info("사용자 활동내역 조회 시작 (단일 쿼리): userId={}", userId);
+        log.info("사용자 활동내역 조회 시작 (단일 쿼리 - Record): userId={}", userId);
 
         Long userIdLong = Long.parseLong(userId);
 
-        // User 존재 확인
-        userRepository.findById(userIdLong)
-                .orElseThrow(UserNotFoundException::new);
+        UserActivityRaw raw = activityRepository.findUserActivityRaw(userIdLong);
 
-        // Repository에서 Raw 데이터 가져오기
-        Object[] rawData = activityRepository.findUserActivitiesByUserId(userIdLong);
-
-        if (rawData == null) {
+        if (raw == null) {
             log.error("사용자 활동 데이터를 찾을 수 없음: userId={}", userId);
             throw new UserNotFoundException();
         }
 
-        // Raw 데이터 파싱 및 DTO 매핑
-        UserActivityDto result = parseRawDataToDto(rawData, userIdLong);
+        // 2. Record → DTO 변환
+        UserActivityDto result = rawMapper.toDto(raw);
 
         log.info("사용자 활동내역 조회 완료 (단일 쿼리): userId={}, 구독: {}건, 댓글: {}건, 좋아요: {}건, 조회: {}건",
                 userId,
@@ -112,12 +110,13 @@ public class UserActivityServiceImpl implements UserActivityService {
 
         if (cached.isPresent()) {
             log.info("Cache HIT: userId={}", userId);
+            log.info("사용자 활동내역 조회 완료 (캐시)");
             return mapper.toDto(cached.get());
         }
 
         log.info("Cache MISS: userId={}", userId);
 
-        UserActivityDto result = getUserActivity(userId);
+        UserActivityDto result = getUserActivitySingleQuery(userId);
 
         saveToCache(result);
 
@@ -133,78 +132,6 @@ public class UserActivityServiceImpl implements UserActivityService {
         } catch (Exception e) {
             log.error("MongoDB 캐시 저장 실패: userId={}", dto.getId(), e);
             throw new RuntimeException("캐시 저장에 실패했습니다.", e);
-        }
-    }
-
-    /**
-     * Object[] Raw 데이터를 UserActivityDto로 변환
-     * Object[] 구조: { userId, email, nickname, createdAt, subscriptionsJson, commentsJson, likesJson, viewsJson }
-     */
-    private UserActivityDto parseRawDataToDto(Object[] rawData, Long userId) {
-        try {
-            // User 정보 추출
-            String email = (String) rawData[1];
-            String nickname = (String) rawData[2];
-            LocalDateTime userCreatedAt = ((Timestamp) rawData[3]).toLocalDateTime();
-
-            // JSON 문자열 추출
-            String subscriptionsJson = rawData[4].toString();
-            String commentsJson = rawData[5].toString();
-            String likesJson = rawData[6].toString();
-            String viewsJson = rawData[7].toString();
-
-            log.debug("JSON 파싱 시작: userId={}", userId);
-
-            // JSON → DTO 리스트 변환
-            List<SubscribesActivityDto> subscriptions = parseJsonToList(
-                    subscriptionsJson,
-                    new TypeReference<List<SubscribesActivityDto>>() {}
-            );
-
-            List<CommentActivityDto> comments = parseJsonToList(
-                    commentsJson,
-                    new TypeReference<List<CommentActivityDto>>() {}
-            );
-
-            List<CommentLikeActivityDto> likes = parseJsonToList(
-                    likesJson,
-                    new TypeReference<List<CommentLikeActivityDto>>() {}
-            );
-
-            List<ArticleViewActivityDto> views = parseJsonToList(
-                    viewsJson,
-                    new TypeReference<List<ArticleViewActivityDto>>() {}
-            );
-
-            log.debug("JSON 파싱 완료: userId={}", userId);
-
-            // UserActivityDto 조합
-            return UserActivityDto.builder()
-                    .id(userId.toString())
-                    .email(email)
-                    .nickname(nickname)
-                    .createdAt(userCreatedAt)
-                    .subscriptions(subscriptions)
-                    .comments(comments)
-                    .commentLikes(likes)
-                    .articleViews(views)
-                    .build();
-
-        } catch (Exception e) {
-            log.error("Raw 데이터 파싱 실패: userId={}", userId, e);
-            throw new RuntimeException("사용자 활동 데이터 파싱에 실패했습니다.", e);
-        }
-    }
-
-    /**
-     * JSON 문자열을 DTO 리스트로 변환
-     */
-    private <T> List<T> parseJsonToList(String json, TypeReference<List<T>> typeReference) {
-        try {
-            return objectMapper.readValue(json, typeReference);
-        } catch (Exception e) {
-            log.error("JSON 파싱 실패: json={}", json, e);
-            throw new RuntimeException("JSON 파싱에 실패했습니다.", e);
         }
     }
 }
