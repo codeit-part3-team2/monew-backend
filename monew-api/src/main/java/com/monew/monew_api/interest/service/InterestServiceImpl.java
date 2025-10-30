@@ -102,8 +102,6 @@ public class InterestServiceImpl implements InterestService {
 
     List<Interest> interests = slices.getContent();
 
-//    Set<Long> interestIds = interests.stream().map(Interest::getId).collect(Collectors.toSet());
-
     List<InterestDto> interestDtos = new ArrayList<>(interests.size());
     for (Interest interest : interests) {
       List<String> keywords = new ArrayList<>();
@@ -115,31 +113,16 @@ public class InterestServiceImpl implements InterestService {
       interestDtos.add(interestMapper.toInterestDto(interest, keywords, false));
     }
 
-    Long totalElements = interestRepository.countFilteredTotalElements(keyword, orderBy, direction);
-
+//    Set<Long> interestIds = interests.stream().map(Interest::getId).collect(Collectors.toSet());
     boolean hasNext = slices.hasNext();
-    String nextCursor = null;
-    LocalDateTime nextAfter = null;
 
-    if (!interests.isEmpty()) {
-      Interest last = interests.get(interests.size() - 1);
-      switch (orderBy) {
-        case name -> {
-          String name = last.getName();
-          nextCursor = (name != null && !name.isBlank())
-              ? name
-              : String.valueOf(last.getId());
-        }
-        case subscriberCount -> nextCursor = String.valueOf(last.getSubscriberCount());
-        default -> nextCursor = String.valueOf(last.getId());
-      }
-      nextAfter = last.getCreatedAt();
-    }
+    String nextCursor = calculateNextCursor(interests, orderBy, hasNext);
+    LocalDateTime nextAfter = calculateNextAfter(interests);
+    long totalElements = interestRepository.countFilteredTotalElements(keyword, orderBy, direction);
 
     return new CursorPageResponseInterestDto(
         interestDtos, nextCursor, nextAfter, interestDtos.size(), totalElements, hasNext);
   }
-
 
   @Override
   @Transactional
@@ -162,7 +145,6 @@ public class InterestServiceImpl implements InterestService {
     log.info("interestId = {}, 관심사 키워드 수정 완료 : {}", interestId, keywords);
     return interestMapper.toInterestDto(interest, keywords, false);
   }
-
 
   @Override
   @Transactional
@@ -195,6 +177,35 @@ public class InterestServiceImpl implements InterestService {
     int distance = levenshtein.apply(name1, name2);
     int maxLength = Math.max(name1.length(), name2.length());
     return 1.0 - ((double) distance / maxLength);
+  }
+
+
+  private String calculateNextCursor(List<Interest> interests, InterestOrderBy orderBy,
+      boolean hasNext) {
+    if (!hasNext || interests.isEmpty()) {
+      return null;
+    }
+    Interest last = interests.get(interests.size() - 1);
+    String cursorValue = "";
+    switch (orderBy) {
+      case name:
+        cursorValue = last.getName();
+        break;
+      case subscriberCount:
+        cursorValue = String.valueOf(last.getSubscriberCount());
+        break;
+      default:
+        throw new IllegalArgumentException("invalid order");
+    }
+    return cursorValue;
+  }
+
+
+  private LocalDateTime calculateNextAfter(List<Interest> interests) {
+    if (!interests.isEmpty()) {
+      return interests.get(interests.size() - 1).getCreatedAt();
+    }
+    return null;
   }
 
 
