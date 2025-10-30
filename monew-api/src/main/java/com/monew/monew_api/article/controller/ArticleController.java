@@ -12,7 +12,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -21,7 +20,6 @@ import java.util.List;
 @RequestMapping("/api/articles")
 public class ArticleController {
 
-    private static final String DEFAULT_ARTICLE_SOURCE = "Naver";
     private final ArticleService articleService;
 
     /**
@@ -46,37 +44,9 @@ public class ArticleController {
             @Validated @ModelAttribute ArticleSearchRequest request,
             @RequestHeader("Monew-Request-User-ID") Long userId
     ) {
-        log.info("[API 요청] GET /api/articles - 기사 목록 조회 요청, 사용자 ID: {}, 키워드: {}, 관심사 ID: {}",
-                userId, request.getKeyword(), request.getInterestId());
-
-        if (request.getSourceIn() == null || request.getSourceIn().isEmpty()) {
-            request.setSourceIn(List.of(DEFAULT_ARTICLE_SOURCE));
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        if (request.getPublishDateFrom() == null) {
-            request.setPublishDateFrom(now.minusDays(7));
-        }
-        if (request.getPublishDateTo() == null) {
-            request.setPublishDateTo(now);
-        }
-
-        log.debug("[조회 파라미터] {}", request);
-
-        CursorPageResponseArticleDto<ArticleDto> dto = articleService.getArticles(
-                request.getKeyword(),
-                request.getInterestId(),
-                request.getSourceIn(),
-                request.getPublishDateFrom(),
-                request.getPublishDateTo(),
-                request.getOrderBy(),
-                request.getDirection(),
-                request.getCursor(),
-                request.getAfter(),
-                request.getLimit(),
-                userId
-        );
-
+        log.info("[API 요청] GET /api/articles - 기사 목록 조회 요청, 사용자 ID: {}, 키워드: {}, 관심사 ID: {}, 커서: {}, After: {}",
+                userId, request.getKeyword(), request.getInterestId(), request.getCursor(), request.getAfter());
+        CursorPageResponseArticleDto<ArticleDto> dto = articleService.getArticles(request, userId);
         log.info("[API 응답] GET /api/articles - 조회 성공, 반환된 기사 수: {}", dto.getContent().size());
         return ResponseEntity.ok(dto);
     }
@@ -91,6 +61,11 @@ public class ArticleController {
     ) {
         log.info("[API 요청] GET /api/articles/{} - 기사 상세 조회 요청, 사용자 ID: {}", articleId, userId);
         ArticleDto dto = articleService.findArticle(articleId, userId);
+
+        if (!dto.isViewedByMe()) {
+            articleService.recordArticleView(articleId, userId);
+        }
+
         log.info("[API 응답] GET /api/articles/{} - 기사 상세 조회 성공", articleId);
         return ResponseEntity.status(HttpStatus.OK).body(dto);
     }
@@ -127,4 +102,11 @@ public class ArticleController {
         log.info("[API 응답] DELETE /api/articles/{}/hard - 기사 영구 삭제 성공", articleId);
         return ResponseEntity.noContent().build();
     }
+
+    // RSS 문제
+    // 포폴
+
+    // S3
+    // S3
+    // 로직 (A이베
 }

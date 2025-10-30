@@ -1,13 +1,13 @@
 package com.monew.monew_api.article.service;
 
 import com.monew.monew_api.article.dto.ArticleDto;
+import com.monew.monew_api.article.dto.ArticleSearchRequest;
 import com.monew.monew_api.article.dto.ArticleViewDto;
 import com.monew.monew_api.article.dto.CursorPageResponseArticleDto;
 import com.monew.monew_api.article.entity.Article;
 import com.monew.monew_api.article.entity.ArticleView;
 import com.monew.monew_api.article.repository.ArticleRepository;
 import com.monew.monew_api.article.repository.ArticleViewRepository;
-import com.monew.monew_api.common.exception.article.ArticleAlreadyViewedException;
 import com.monew.monew_api.common.exception.article.ArticleNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,22 +33,36 @@ public class ArticleService {
     public ArticleViewDto recordArticleView(Long articleId, Long userId) {
         log.info("[기사 조회 기록 시도] 기사 ID: {}, 사용자 ID: {}", articleId, userId);
 
-        // 이미 조회한 기사라면 예외 발생
         if (articleViewRepository.existsByUserIdAndArticleId(userId, articleId)) {
             log.warn("[조회 기록 실패] 이미 조회한 기사입니다. 사용자 ID: {}, 기사 ID: {}", userId, articleId);
-            throw new ArticleAlreadyViewedException();
+
+            Article article = articleRepository.findByIdAndIsDeletedFalse(articleId)
+                    .orElseThrow(ArticleNotFoundException::new);
+
+            return ArticleViewDto.builder()
+                    .id(null)
+                    .viewedBy(userId)
+                    .createdAt(LocalDateTime.now())
+                    .articleId(articleId)
+                    .source(article.getSource())
+                    .sourceUrl(article.getSourceUrl())
+                    .articleTitle(article.getTitle())
+                    .articlePublishedDate(article.getPublishDate())
+                    .articleSummary(article.getSummary())
+                    .articleCommentCount(article.getCommentCount())
+                    .articleViewCount(article.getViewCount())
+                    .build();
         }
 
-        // 기사 존재 여부 확인
         Article article = articleRepository.findByIdAndIsDeletedFalse(articleId)
                 .orElseThrow(() -> {
                     log.warn("[조회 기록 실패] 존재하지 않는 기사: {}", articleId);
                     return new ArticleNotFoundException();
                 });
 
-        // 조회 기록 생성
         ArticleView articleView = new ArticleView(userId, articleId);
         ArticleView saved = articleViewRepository.save(articleView);
+        article.increaseViewCount();
         log.info("[조회 기록 성공] 기사 ID: {}, 사용자 ID: {}", articleId, userId);
 
         return ArticleViewDto.builder()
@@ -69,29 +83,27 @@ public class ArticleService {
     /**
      * 기사 목록 조회 (검색/필터/페이징 포함)
      */
-    public CursorPageResponseArticleDto<ArticleDto> getArticles(
-            String keyword, Long interestId, List<String> sourceIn,
-            LocalDateTime publishDateFrom, LocalDateTime publishDateTo,
-            String orderBy, String direction,
-            String cursor, LocalDateTime after, int limit, Long userId
-    ) {
+    public CursorPageResponseArticleDto<ArticleDto> getArticles(ArticleSearchRequest request, Long userId) {
+        String keyword = request.getKeyword();
+        Long interestId = request.getInterestId();
+
+        if ((keyword == null || keyword.isBlank()) && interestId == null) {
+            interestId = 1L;
+        } else if (keyword != null && !keyword.isBlank() && interestId != null) {
+            keyword = null;
+        }
+
         log.info("[기사 목록 조회] 사용자 ID: {}, 키워드: {}, 관심사 ID: {}", userId, keyword, interestId);
 
         CursorPageResponseArticleDto<ArticleDto> result = articleRepository.searchArticles(
-                keyword,
-                interestId,
-                sourceIn,
-                publishDateFrom,
-                publishDateTo,
-                orderBy,
-                direction,
-                cursor,
-                after,
-                limit,
-                userId
+                keyword, interestId, request.getSourceIn(),
+                request.getPublishDateFrom(), request.getPublishDateTo(),
+                request.getOrderBy(), request.getDirection(),
+                request.getCursor(), request.getAfter(), request.getLimit(), userId
         );
 
-        log.info("[기사 목록 조회 완료] 조회된 기사 수: {}", result.getContent().size());
+        log.info("[기사 목록 조회 완료] 조회된 기사 수: {}, 커서: {}, After: {}",
+                result.getContent().size(), result.getNextCursor(), result.getNextAfter());
         return result;
     }
 
@@ -128,7 +140,14 @@ public class ArticleService {
     public List<String> getAllSources() {
         log.info("[뉴스 출처 목록 조회]");
         List<String> sources = articleRepository.findDistinctSources();
-        log.debug("[뉴스 출처 조회 완료] 출처 개수: {}", sources.size());
+
+        sources.sort((a, b) -> {
+            if (a.equalsIgnoreCase("Naver")) return -1;
+            if (b.equalsIgnoreCase("Naver")) return 1;
+            return a.compareToIgnoreCase(b);
+        });
+
+        log.debug("[뉴스 출처 조회 완료] 출처 개수: {}, 정렬 결과: {}", sources.size(), sources);
         return sources;
     }
 

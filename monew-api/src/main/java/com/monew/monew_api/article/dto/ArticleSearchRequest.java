@@ -21,14 +21,16 @@ public class ArticleSearchRequest {
 
     @Size(max = 50, message = "검색어(keyword)는 최대 50자까지 입력할 수 있습니다.")
     private String keyword;
+
     private Long interestId;
-    private List<String> sourceIn;
+
+    private List<String> sourceIn = List.of("Naver");
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    private LocalDateTime publishDateFrom;
+    private LocalDateTime publishDateFrom = LocalDateTime.now().minusDays(7);
 
     @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME)
-    private LocalDateTime publishDateTo;
+    private LocalDateTime publishDateTo = LocalDateTime.now();
 
     @Pattern(regexp = "^(publishDate|viewCount|commentCount)$",
             message = "정렬 기준(orderBy)은 publishDate, viewCount, commentCount 중 하나여야 합니다.")
