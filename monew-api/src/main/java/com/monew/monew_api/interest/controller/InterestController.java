@@ -45,7 +45,7 @@ public class InterestController {
   @GetMapping
   public ResponseEntity<CursorPageResponseInterestDto> getInterests(
       @RequestHeader("Monew-Request-User-Id") Long userId,
-      @ParameterObject @ModelAttribute CursorPageRequestInterestDto request
+      @ParameterObject @ModelAttribute @Valid CursorPageRequestInterestDto request
   ) {
     log.info("[API 요청] GET/api/interests/ - 관심사 조회 요청 : {}", request);
     CursorPageResponseInterestDto response = interestService.getInterests(userId, request);
@@ -67,12 +67,13 @@ public class InterestController {
 
   @PatchMapping("/{interestId}")
   public ResponseEntity<InterestDto> updateInterestKeywords(
+      @RequestHeader(name = "Monew-Request-User-Id") Long userId,
       @PathVariable Long interestId,
-      @RequestBody InterestUpdateRequest request
+      @RequestBody @Valid InterestUpdateRequest request
   ) {
     log.info("[API 요청] PATCH/api/interests/{} - 관심사 키워드 수정 요청 : {}", interestId, request);
     InterestDto response = interestService
-        .updateInterestKeywords(request, interestId);
+        .updateInterestKeywords(request, interestId, userId);
     log.info("[API 응답] PATCH/api/interests/{} - 관심사 키워드 수정 응답 : {}", interestId, response);
     return ResponseEntity.status(HttpStatus.OK).body(response);
   }
