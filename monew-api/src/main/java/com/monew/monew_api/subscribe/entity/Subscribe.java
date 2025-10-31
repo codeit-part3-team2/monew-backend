@@ -1,8 +1,8 @@
 package com.monew.monew_api.subscribe.entity;
 
 import com.monew.monew_api.common.entity.BaseCreatedEntity;
-import com.monew.monew_api.interest.entity.Interest;
 import com.monew.monew_api.domain.user.User;
+import com.monew.monew_api.interest.entity.Interest;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.JoinColumn;
@@ -27,4 +27,8 @@ public class Subscribe extends BaseCreatedEntity {
   @JoinColumn(name = "user_id", nullable = false)
   private User user;
 
+  public static Subscribe create(Interest interest, User user) {
+    return new Subscribe(interest, user);
+  }
 }
+
