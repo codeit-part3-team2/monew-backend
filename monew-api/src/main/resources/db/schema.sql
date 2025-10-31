@@ -60,6 +60,33 @@ CREATE INDEX ix_article_views_user ON article_views (user_id);
 CREATE INDEX ix_article_views_article ON article_views (article_id);
 
 -- ======================================================
+-- Article Keyword Logs (뉴스가 어떤 관심사·키워드로 수집됐는지 추적)
+-- ======================================================
+CREATE TABLE article_keyword_logs
+(
+    id            BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+    article_id    BIGINT    NOT NULL,
+    keyword_id    BIGINT    NOT NULL,
+    interest_id   BIGINT    NOT NULL,
+    collected_at  TIMESTAMP NOT NULL DEFAULT NOW(),
+
+    CONSTRAINT uq_article_keyword_logs UNIQUE (article_id, keyword_id, interest_id),
+
+    CONSTRAINT fk_article_keyword_logs_article
+        FOREIGN KEY (article_id) REFERENCES articles (id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_article_keyword_logs_keyword
+        FOREIGN KEY (keyword_id) REFERENCES keywords (id) ON DELETE CASCADE,
+
+    CONSTRAINT fk_article_keyword_logs_interest
+        FOREIGN KEY (interest_id) REFERENCES interests (id) ON DELETE CASCADE
+);
+
+CREATE INDEX ix_article_keyword_logs_article ON article_keyword_logs (article_id);
+CREATE INDEX ix_article_keyword_logs_keyword ON article_keyword_logs (keyword_id);
+CREATE INDEX ix_article_keyword_logs_interest ON article_keyword_logs (interest_id);
+
+-- ======================================================
 -- Interests
 -- ======================================================
 CREATE TABLE interests
