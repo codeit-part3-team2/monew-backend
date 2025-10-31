@@ -124,7 +124,7 @@ public class UserActivityRepositoryImpl implements UserActivityRepository {
                 STRING_AGG(k.keyword, ',') AS keywords
             FROM subscribes s
             JOIN interests i ON s.interest_id = i.id
-            LEFT JOIN interests_keywords ik ON i.id = ik.interest_id
+            LEFT JOIN interest_keywords ik ON i.id = ik.interest_id
             LEFT JOIN keywords k ON ik.keyword_id = k.id
             WHERE s.user_id = :userId
             GROUP BY s.id, s.user_id, s.created_at, i.id, i.name, i.subscriber_count
