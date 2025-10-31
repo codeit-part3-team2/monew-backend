@@ -5,7 +5,6 @@ import static com.monew.monew_api.comments.entity.QComment.*;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import org.springframework.stereotype.Repository;
@@ -29,7 +28,6 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class CommentRepositoryImpl implements CommentRepositoryCustom {
 
-	private static final ZoneId KST = ZoneId.of("Asia/Seoul");
 	private final JPAQueryFactory jpaQueryFactory;
 
 	@Override
@@ -89,7 +87,7 @@ public class CommentRepositoryImpl implements CommentRepositoryCustom {
 			}
 
 			// after는 입력받은 값을 그대로 유지 (시간 필터 고정)
-			nextAfter = after != null ? after.atZone(KST) : null;
+			nextAfter = after != null ? after.atZone(ZoneId.systemDefault()) : null;
 
 		}
 
