@@ -1,6 +1,5 @@
 package com.monew.monew_api.subscribe.service;
 
-import com.monew.monew_api.common.exception.ErrorCode;
 import com.monew.monew_api.common.exception.subscribe.SubscribeDuplicateException;
 import com.monew.monew_api.common.exception.subscribe.SubscribeNotFoundException;
 import com.monew.monew_api.common.exception.user.UserNotFoundException;
@@ -12,8 +11,6 @@ import com.monew.monew_api.subscribe.dto.SubscribeDto;
 import com.monew.monew_api.subscribe.entity.Subscribe;
 import com.monew.monew_api.subscribe.mapper.SubscribeMapper;
 import com.monew.monew_api.subscribe.repository.SubscribeRepository;
-import java.util.List;
-import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;

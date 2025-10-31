@@ -3,6 +3,7 @@ package com.monew.monew_api.interest.service;
 import com.monew.monew_api.common.exception.interest.InterestDuplicatedException;
 import com.monew.monew_api.common.exception.interest.InterestNotFoundException;
 import com.monew.monew_api.common.exception.user.UserNotFoundException;
+import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.domain.user.repository.UserRepository;
 import com.monew.monew_api.interest.dto.InterestOrderBy;
 import com.monew.monew_api.interest.dto.request.CursorPageRequestInterestDto;
@@ -16,6 +17,8 @@ import com.monew.monew_api.interest.entity.Keyword;
 import com.monew.monew_api.interest.mapper.InterestMapper;
 import com.monew.monew_api.interest.repository.InterestRepository;
 import com.monew.monew_api.interest.repository.KeywordRepository;
+import com.monew.monew_api.subscribe.repository.SubscribeRepository;
+import com.monew.monew_api.subscribe.repository.SubscribeRepository.InterestCountProjection;
 import jakarta.validation.constraints.Size;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -28,6 +31,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.text.similarity.LevenshteinDistance;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Service;
@@ -41,13 +45,14 @@ public class InterestServiceImpl implements InterestService {
   private final InterestRepository interestRepository;
   private final UserRepository userRepository;
   private final KeywordRepository keywordRepository;
+  private final SubscribeRepository subscribeRepository;
+
   private final InterestMapper interestMapper;
 
   @Override
   @Transactional
   public InterestDto createInterest(InterestRegisterRequest request) {
 
-    log.info("새로운 관심사 등록 요청: {}", request);
     String interestName = request.name();
 
     // 유사도 검사
@@ -75,19 +80,13 @@ public class InterestServiceImpl implements InterestService {
         .map(ik -> ik.getKeyword().getKeyword())
         .collect(Collectors.toList());
 
-    InterestDto response = interestMapper.toInterestDto(savedInterest, keywords, false);
-    log.info("관심사 등록 완료: {}", response);
-
-    return response;
+    return interestMapper.toInterestDto(savedInterest, keywords, false);
   }
 
   @Override
   @Transactional(readOnly = true)
   public CursorPageResponseInterestDto getInterests(Long userId,
       CursorPageRequestInterestDto request) {
-
-    log.info("관심사 조회 요청 : {}", request);
-    userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
 
     final String keyword = (request.keyword() == null) ? null : request.keyword();
     final InterestOrderBy orderBy =
@@ -102,20 +101,34 @@ public class InterestServiceImpl implements InterestService {
 
     List<Interest> interests = slices.getContent();
 
+    // 관심사 Id 수집
+    Set<Long> interestIds = interests.stream().map(Interest::getId).collect(Collectors.toSet());
+    // 내가 구독중인 관심사 ID
+    Set<Long> subscribedIds = subscribeRepository.findSubscribedByInterestIds(userId,
+        interestIds);
+    // 관심사별 구독자 수 벌크 집계
+    Map<Long, Long> countMap = subscribeRepository.countByInterestIds(interestIds).stream()
+        .collect(Collectors.toMap(
+            InterestCountProjection::getInterestId,
+            InterestCountProjection::getCount
+        ));
+
+    // dto 채우기
     List<InterestDto> interestDtos = new ArrayList<>(interests.size());
     for (Interest interest : interests) {
-      List<String> keywords = new ArrayList<>();
-      for (InterestKeyword ik : interest.getKeywords()) {
-        String name = ik.getKeyword().getKeyword();
-        keywords.add(name);
-      }
-      // ⭐️⭐️ 구독 여부 확인 조회 코드 필요!!!!
-      interestDtos.add(interestMapper.toInterestDto(interest, keywords, false));
+      List<String> keywords = interest.getKeywords().stream()
+          .map(ik -> ik.getKeyword().getKeyword())
+          .toList();
+
+      boolean subscribedByMe = subscribedIds.contains(interest.getId());
+
+      Long countLong = countMap.getOrDefault(interest.getId(), 0L);
+      int subscriberCount = Math.toIntExact(countLong);
+      interestDtos.add(
+          interestMapper.toInterestDto(interest, keywords, subscribedByMe, subscriberCount));
     }
 
-//    Set<Long> interestIds = interests.stream().map(Interest::getId).collect(Collectors.toSet());
     boolean hasNext = slices.hasNext();
-
     String nextCursor = calculateNextCursor(interests, orderBy, hasNext);
     LocalDateTime nextAfter = calculateNextAfter(interests);
     long totalElements = interestRepository.countFilteredTotalElements(keyword, orderBy, direction);
@@ -127,12 +140,12 @@ public class InterestServiceImpl implements InterestService {
   @Override
   @Transactional
   public InterestDto updateInterestKeywords(
-      InterestUpdateRequest request, Long interestId) {
-    log.info("interestId = {}, 관심사 키워드 수정 요청 : {}", interestId, request);
+      InterestUpdateRequest request, Long interestId, Long userId) {
 
-//    userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
+    User user = userRepository.findById(userId).orElseThrow(UserNotFoundException::new);
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(InterestNotFoundException::new);
+    boolean subscribedByMe = subscribeRepository.existsByInterestAndUser(interest, user);
 
     updateKeywords(interest, request.keywords());
 
@@ -140,21 +153,16 @@ public class InterestServiceImpl implements InterestService {
         .map(ik -> ik.getKeyword().getKeyword())
         .collect(Collectors.toList());
 
-    // ⭐️⭐️구독 여부 가져오는 코드 추가 필요!!
-
-    log.info("interestId = {}, 관심사 키워드 수정 완료 : {}", interestId, keywords);
-    return interestMapper.toInterestDto(interest, keywords, false);
+    return interestMapper.toInterestDto(interest, keywords, subscribedByMe);
   }
 
   @Override
   @Transactional
   public void deleteInterest(Long interestId) {
-    log.info("관심사 삭제 요청 : interestId = {}", interestId);
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(InterestNotFoundException::new);
 
     interestRepository.delete(interest);
-    log.info("관심사 삭제 완료 : interestId = {}", interestId);
   }
 
 

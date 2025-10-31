@@ -1,10 +1,7 @@
 package com.monew.monew_api.interest.repository;
 
-import com.monew.monew_api.interest.entity.QInterest;
-import com.monew.monew_api.interest.dto.InterestOrderBy;
 import com.monew.monew_api.interest.entity.Interest;
-import com.monew.monew_api.interest.entity.QInterestKeyword;
-import com.monew.monew_api.interest.entity.QKeyword;
+import com.monew.monew_api.interest.dto.InterestOrderBy;
 import com.querydsl.core.Tuple;
 import com.querydsl.core.types.Expression;
 import com.querydsl.core.types.OrderSpecifier;
@@ -21,13 +18,17 @@ import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.domain.Sort.Direction;
 import org.springframework.stereotype.Repository;
 
+import com.monew.monew_api.interest.entity.QInterestKeyword;
+import com.monew.monew_api.interest.entity.QKeyword;
+import com.monew.monew_api.interest.entity.QInterest;
+
 @Repository
 @RequiredArgsConstructor
 public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
 
   private final JPAQueryFactory queryFactory;
 
-  private static final QInterest i =  QInterest.interest;
+  private static final QInterest i = QInterest.interest;
   private static final QKeyword k = QKeyword.keyword1;
   private static final QInterestKeyword ik = QInterestKeyword.interestKeyword;
 
@@ -64,7 +65,9 @@ public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
         .fetch();
 
     boolean hasNext = rows.size() > limit;
-    if (hasNext) rows = rows.subList(0, limit);
+    if (hasNext) {
+      rows = rows.subList(0, limit);
+    }
 
     if (rows.isEmpty()) {
       return new SliceImpl<>(Collections.emptyList(), PageRequest.of(0, limit), false);
@@ -93,26 +96,38 @@ public class InterestRepositoryCustomImpl implements InterestRepositoryCustom {
 
   // 관심사명 OR 키워드명 부분일치
   private BooleanExpression containsInterestOrKeyword(String keyword) {
-    if (keyword == null || keyword.isBlank()) return null;
+    if (keyword == null || keyword.isBlank()) {
+      return null;
+    }
     return i.name.containsIgnoreCase(keyword)
         .or(k.keyword.containsIgnoreCase(keyword));
   }
 
   // after
   private BooleanExpression createdAfter(LocalDateTime after) {
-    if (after == null) return null;
+    if (after == null) {
+      return null;
+    }
     return i.createdAt.goe(after);
   }
 
   // 커서 조건: 정렬 기준별 비교
-  private BooleanExpression createCursorPredicate(InterestOrderBy sortBy, Direction dir, String cursor) {
-    if (cursor == null || cursor.isBlank()) return null;
+  private BooleanExpression createCursorPredicate(InterestOrderBy sortBy, Direction dir,
+      String cursor) {
+    if (cursor == null || cursor.isBlank()) {
+      return null;
+    }
 
     return switch (sortBy) {
       case name -> (dir == Direction.ASC) ? i.name.gt(cursor) : i.name.lt(cursor);
       case subscriberCount -> {
         int v = Integer.parseInt(cursor);
-        yield (dir == Direction.ASC) ? i.subscriberCount.gt(v) : i.subscriberCount.lt(v);
+        BooleanExpression condition = (dir == Direction.ASC)
+            ? i.subscriberCount.gt(v)
+            .or(i.subscriberCount.eq(v).and(i.id.gt(Long.parseLong(cursor))))
+            : i.subscriberCount.lt(v)
+                .or(i.subscriberCount.eq(v).and(i.id.lt(Long.parseLong(cursor))));
+        yield condition;
       }
     };
   }
