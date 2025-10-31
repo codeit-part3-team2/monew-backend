@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:sprint-project-1196140422.ap-northeast-2.elb.amazonaws.com)",
+      "Bash(mkdir:*)",
+      "Bash(./gradlew clean build:*)",
+      "Bash(./gradlew:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

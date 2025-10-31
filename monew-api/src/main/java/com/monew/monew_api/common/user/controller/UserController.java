@@ -1,7 +1,7 @@
-package com.monew.monew_api.domain.user.controller;
+package com.monew.monew_api.common.user.controller;
 
-import com.monew.monew_api.domain.user.dto.*;
-import com.monew.monew_api.domain.user.service.UserService;
+import com.monew.monew_api.common.user.dto.*;
+import com.monew.monew_api.common.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

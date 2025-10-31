@@ -1,4 +1,4 @@
-package com.monew.monew_api.domain.user.dto;
+package com.monew.monew_api.common.user.dto;
 
 import lombok.Builder;
 import lombok.Getter;

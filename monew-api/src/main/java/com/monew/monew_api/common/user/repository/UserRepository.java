@@ -1,6 +1,6 @@
-package com.monew.monew_api.domain.user.repository;
+package com.monew.monew_api.common.user.repository;
 
-import com.monew.monew_api.domain.user.User;
+import com.monew.monew_api.common.user.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

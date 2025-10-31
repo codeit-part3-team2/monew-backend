@@ -1,4 +1,4 @@
-package com.monew.monew_api.domain.user;
+package com.monew.monew_api.common.user;
 
 import com.monew.monew_api.common.entity.BaseTimeEntity;
 import jakarta.persistence.*;
