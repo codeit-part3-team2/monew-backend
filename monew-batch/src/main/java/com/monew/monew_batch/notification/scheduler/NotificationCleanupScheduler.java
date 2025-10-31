@@ -1,4 +1,4 @@
-package com.monew.monew_batch;
+package com.monew.monew_batch.notification.scheduler;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
