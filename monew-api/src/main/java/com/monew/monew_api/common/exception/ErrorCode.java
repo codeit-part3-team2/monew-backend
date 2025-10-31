@@ -16,6 +16,10 @@ public enum ErrorCode {
     INTEREST_DUPLICATED(HttpStatus.CONFLICT.value(), "유사한 관심사가 이미 존재합니다."),
     INTEREST_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "관심사 정보를 찾을 수 없습니다."),
 
+    //관심사 구독 - SUBSCRIBE
+    SUBSCRIBE_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "구독 정보를 찾을 수 없습니다."),
+    SUBSCRIBE_DUPLICATE(HttpStatus.CONFLICT.value(), "이미 구독 중입니다."),
+
     // 뉴스 기사 - ARTICLE
     ARTICLE_NOT_FOUND(HttpStatus.NOT_FOUND.value(), "뉴스 기사 정보를 찾을 수 없습니다."),
     ARTICLE_ALREADY_VIEWED(HttpStatus.CONFLICT.value(), "이미 조회한 기사입니다."),
