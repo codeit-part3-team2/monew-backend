@@ -10,8 +10,4 @@ public class CommentNotFoundException extends BaseException {
     public CommentNotFoundException() {
         super(ErrorCode.COMMENT_NOT_FOUND);
     }
-
-    public CommentNotFoundException(Map<String, Object> details) {
-        super(ErrorCode.COMMENT_NOT_FOUND, details);
-    }
 }
