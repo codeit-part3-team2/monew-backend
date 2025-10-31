@@ -31,6 +31,13 @@ public class Notification extends BaseTimeEntity {
     @Column(nullable = false)
     private boolean confirmed;
 
+    public Notification(User user, String content, ResourceType resourceType, Long resourceId) {
+        this.user = user;
+        this.content = content;
+        this.resourceType = resourceType;
+        this.resourceId = resourceId;
+    }
+
     public void confirm() {
         this.confirmed = true;
     }
