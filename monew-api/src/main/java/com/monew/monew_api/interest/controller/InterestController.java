@@ -45,7 +45,7 @@ public class InterestController {
   @GetMapping
   public ResponseEntity<CursorPageResponseInterestDto> getInterests(
       @RequestHeader("Monew-Request-User-Id") Long userId,
-      @ParameterObject @ModelAttribute @Valid CursorPageRequestInterestDto request
+      @ParameterObject @ModelAttribute CursorPageRequestInterestDto request
   ) {
     log.info("[API 요청] GET/api/interests/ - 관심사 조회 요청 : {}", request);
     CursorPageResponseInterestDto response = interestService.getInterests(userId, request);
