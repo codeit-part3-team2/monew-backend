@@ -58,6 +58,16 @@ public class Article extends BaseIdEntity {
         this.isDeleted = true;
     }
 
+    public void increaseCommentCount() {
+        this.commentCount++;
+    }
+
+    public void decreaseCommentCount() {
+        if (this.commentCount > 0) {
+            this.commentCount--;
+        }
+    }
+
     public void increaseViewCount() {
         this.viewCount++;
     }
