@@ -1,12 +1,16 @@
 package com.monew.monew_api.notification.service;
 
+import com.monew.monew_api.comments.event.CommentLikedEvent;
 import com.monew.monew_api.common.dto.CursorPageResponse;
 import com.monew.monew_api.common.exception.notification.NotificationAccessDeniedException;
 import com.monew.monew_api.common.exception.notification.NotificationAlreadyConfirmedException;
 import com.monew.monew_api.common.exception.notification.NotificationNotFoundException;
+import com.monew.monew_api.domain.user.User;
+import com.monew.monew_api.domain.user.repository.UserRepository;
 import com.monew.monew_api.notification.dto.request.NotificationCursorPageRequest;
 import com.monew.monew_api.notification.dto.response.NotificationDto;
 import com.monew.monew_api.notification.entity.Notification;
+import com.monew.monew_api.notification.enums.ResourceType;
 import com.monew.monew_api.notification.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,6 +23,21 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class NotificationService {
     private final NotificationRepository notificationRepository;
+    private final UserRepository userRepository;
+
+    @Transactional
+    public void createCommentLikeNotification(CommentLikedEvent event) {
+        User commentAuthorIdOnly = userRepository.getReferenceById(event.commentAuthorId());
+
+        String content = String.format("%s님이 나의 댓글을 좋아합니다.", event.likerNickname());
+
+        notificationRepository.save(
+                new Notification(
+                        commentAuthorIdOnly,
+                        content,
+                        ResourceType.comment,
+                        event.commentId()));
+    }
 
     public CursorPageResponse<NotificationDto> getNonConfirmedNotifications(Long userId, NotificationCursorPageRequest cursorPageRequest) {
         return notificationRepository.findAllNonConfirmedNotifications(userId, cursorPageRequest);

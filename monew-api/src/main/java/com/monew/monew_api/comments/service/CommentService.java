@@ -1,36 +1,22 @@
 package com.monew.monew_api.comments.service;
 
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import com.monew.monew_api.article.entity.Article;
 import com.monew.monew_api.article.repository.ArticleRepository;
-import com.monew.monew_api.comments.dto.CommentDto;
-import com.monew.monew_api.comments.dto.CommentLikeDto;
-import com.monew.monew_api.comments.dto.CommentRegisterRequest;
-import com.monew.monew_api.comments.dto.CommentSearchRequest;
-import com.monew.monew_api.comments.dto.CommentUpdateRequest;
-import com.monew.monew_api.comments.dto.CursorPageResponseCommentDto;
+import com.monew.monew_api.comments.dto.*;
 import com.monew.monew_api.comments.entity.Comment;
 import com.monew.monew_api.comments.entity.CommentLike;
 import com.monew.monew_api.comments.event.CommentCreatedEvent;
 import com.monew.monew_api.comments.event.CommentLikedEvent;
 import com.monew.monew_api.comments.repository.CommentLikeRepository;
 import com.monew.monew_api.comments.repository.CommentRepository;
-import com.monew.monew_api.common.exception.comment.CommentArticleNotFoundException;
-import com.monew.monew_api.common.exception.comment.CommentForbiddenException;
-import com.monew.monew_api.common.exception.comment.CommentNotFoundException;
-import com.monew.monew_api.common.exception.comment.CommentNotLikedException;
-import com.monew.monew_api.common.exception.comment.CommentUserNotFoundException;
+import com.monew.monew_api.common.exception.comment.*;
 import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.domain.user.repository.UserRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Slf4j
 @Service
@@ -88,8 +74,8 @@ public class CommentService {
 		comment.increaseLike();
 
 		eventPublisher.publishEvent(
-			new CommentLikedEvent(comment.getId(), comment.getUserId(), userId, LocalDateTime.now())
-		);
+				new CommentLikedEvent(comment.getId(), comment.getUserId(), user.getNickname()));
+
 		log.info("[COMMENT][LIKE] userId={}, commentId={}", userId, commentId);
 		return CommentLikeDto.from(saved);
 	}

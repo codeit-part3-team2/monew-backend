@@ -15,7 +15,7 @@ import java.util.TimeZone;
 public class MonewBatchApplication {
 
 	public static void main(String[] args) {
-		TimeZone.setDefault(TimeZone.getTimeZone("UTC"));
+		TimeZone.setDefault(TimeZone.getTimeZone("Asia/Seoul"));
 		SpringApplication.run(MonewBatchApplication.class, args);
 	}
 

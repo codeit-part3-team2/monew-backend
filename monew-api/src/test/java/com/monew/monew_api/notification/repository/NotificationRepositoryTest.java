@@ -47,7 +47,6 @@ class NotificationRepositoryTest {
     void deleteAllOldConfirmedTest() {
         // Given
         LocalDateTime now = LocalDateTime.now();
-        System.out.println("지금!!!!" + now);
         LocalDateTime oneWeekAgo = now.minusWeeks(1);
         LocalDateTime eightDaysAgo = now.minusDays(8);
         LocalDateTime sixDaysAgo = now.minusDays(6);
