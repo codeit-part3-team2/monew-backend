@@ -37,8 +37,5 @@ subprojects {
 
     tasks.named('test') {
         useJUnitPlatform()
-
-        // 테스트시 모든 시간대를 UTC 기준으로 변경
-        systemProperty 'user.timezone', 'UTC'
     }
 }
