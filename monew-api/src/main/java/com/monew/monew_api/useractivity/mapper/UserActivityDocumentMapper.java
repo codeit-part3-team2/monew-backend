@@ -7,6 +7,6 @@ import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
 public interface UserActivityDocumentMapper {
-    @Mapping(target = "cachedAt", expression = "java(java.time.LocalDateTime.now())")
+    @Mapping(target = "updatedAt", expression = "java(java.time.LocalDateTime.now())")
     UserActivityCacheDocument toDocument(UserActivityDto dto);
 }
