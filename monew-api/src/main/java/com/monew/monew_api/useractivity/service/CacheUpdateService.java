@@ -1,6 +1,7 @@
 package com.monew.monew_api.useractivity.service;
 
 import com.monew.monew_api.useractivity.dto.UserActivityDto;
+import org.hibernate.mapping.Set;
 
 import java.time.LocalDateTime;
 import java.util.List;

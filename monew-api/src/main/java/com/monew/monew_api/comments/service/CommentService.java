@@ -5,8 +5,7 @@ import com.monew.monew_api.article.repository.ArticleRepository;
 import com.monew.monew_api.comments.dto.*;
 import com.monew.monew_api.comments.entity.Comment;
 import com.monew.monew_api.comments.entity.CommentLike;
-import com.monew.monew_api.comments.event.CommentCreatedEvent;
-import com.monew.monew_api.comments.event.CommentLikedEvent;
+import com.monew.monew_api.comments.event.*;
 import com.monew.monew_api.comments.repository.CommentLikeRepository;
 import com.monew.monew_api.comments.repository.CommentRepository;
 import com.monew.monew_api.common.exception.comment.*;
@@ -68,6 +67,9 @@ public class CommentService {
 			userId, commentId, request.content().length());
 
 		boolean likedByMe = commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId);
+
+        eventPublisher.publishEvent(CommentContentEditedEvent.of(commentId, request.content()));
+
 		return CommentDto.from(comment, likedByMe);
 	}
 
@@ -110,6 +112,8 @@ public class CommentService {
 		commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId);
 		commentRepository.decLikeCount(commentId);
 
+        eventPublisher.publishEvent(CommentUnlikedEvent.of(commentId, userId));
+
 		log.info("[COMMENT][DISLIKE] userId={}, commentId={}", userId, commentId);
 	}
 
@@ -118,6 +122,8 @@ public class CommentService {
 	public void delete(Long commentId) {
 		log.info("[COMMENT][DELETE][START] commentId={}", commentId);
 		Comment comment = getCommentById(commentId);
+
+        eventPublisher.publishEvent(CommentDeletedEvent.of(commentId));
 
 		commentRepository.delete(comment);
 		log.info("[COMMENT][DELETE] commentId={}", commentId);
