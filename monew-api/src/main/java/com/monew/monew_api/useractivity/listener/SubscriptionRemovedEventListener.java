@@ -20,7 +20,7 @@ public class SubscriptionRemovedEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(SubscriptionRemovedEvent e) {
         cacheUpdateService.removeSubscription(e.userId(), e.subscriptionId(), e.interestId());
-        log.info("[Event] SubscriptionRemoved handled: userId={}, subId={}",
+        log.info("[Listener] SubscriptionRemoved handled: userId={}, subId={}",
                 e.userId(), e.subscriptionId());
     }
 }

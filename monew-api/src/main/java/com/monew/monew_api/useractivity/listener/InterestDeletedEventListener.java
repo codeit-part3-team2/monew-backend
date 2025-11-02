@@ -20,6 +20,6 @@ public class InterestDeletedEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(InterestDeletedEvent e) {
         cacheUpdateService.removeInterest(e.interestId());
-        log.info("[Event] InterestDeleted handled: interestId={}", e.interestId());
+        log.info("[Listener] InterestDeleted handled: interestId={}", e.interestId());
     }
 }

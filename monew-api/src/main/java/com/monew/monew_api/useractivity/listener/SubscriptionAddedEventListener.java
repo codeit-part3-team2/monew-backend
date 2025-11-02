@@ -28,7 +28,7 @@ public class SubscriptionAddedEventListener {
                 e.interestSubscriberCount(),
                 e.createdAt()
         );
-        log.info("[Event] SubscriptionAdded handled: userId={}, subId={}, interestId={}",
+        log.info("[Listener] SubscriptionAdded handled: userId={}, subId={}, interestId={}",
                 e.userId(), e.subscriptionId(), e.interestId());
     }
 }

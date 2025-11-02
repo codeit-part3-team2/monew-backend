@@ -37,7 +37,7 @@ public class CommentLikedEventListener {
         );
         cacheUpdateService.updateCommentLikeCount(e.commentId(), +1);
 
-        log.info("[Event] CommentLikedEvent handled: commentId={}, likedBy={}",
+        log.info("[Listener] CommentLikedEvent handled: commentId={}, likedBy={}",
                 e.commentId(), e.likedByUserId());
     }
 }

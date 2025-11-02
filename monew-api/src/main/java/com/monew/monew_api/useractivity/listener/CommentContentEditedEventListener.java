@@ -20,6 +20,6 @@ public class CommentContentEditedEventListener {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handle(CommentContentEditedEvent e) {
         cacheUpdateService.updateCommentContent(e.commentId(), e.newContent());
-        log.info("[Event] CommentContentEdited handled: commentId={}", e.commentId());
+        log.info("[Listener] CommentContentEdited handled: commentId={}", e.commentId());
     }
 }

@@ -25,7 +25,7 @@ public class CommentUnlikedEventListener {
     public void handle(CommentUnlikedEvent e) {
         cacheUpdateService.updateCommentLikeCount(e.commentId(), -1);
         cacheUpdateService.removeCommentLike(e.likedByUserId(), e.commentId());
-        log.info("[Event] CommentUnlikedEvent handled: commentId={}, likedBy={}",
+        log.info("[Listener] CommentUnlikedEvent handled: commentId={}, likedBy={}",
                 e.commentId(), e.likedByUserId());
     }
 }
