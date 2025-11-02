@@ -5,6 +5,8 @@ import com.monew.monew_api.common.exception.interest.InterestNotFoundException;
 import com.monew.monew_api.common.exception.user.UserNotFoundException;
 import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.domain.user.repository.UserRepository;
+import com.monew.monew_api.interest.event.InterestDeletedEvent;
+import com.monew.monew_api.interest.event.InterestUpdatedEvent;
 import com.monew.monew_api.interest.dto.InterestOrderBy;
 import com.monew.monew_api.interest.dto.request.CursorPageRequestInterestDto;
 import com.monew.monew_api.interest.dto.request.InterestRegisterRequest;
@@ -48,6 +50,7 @@ public class InterestServiceImpl implements InterestService {
   private final SubscribeRepository subscribeRepository;
 
   private final InterestMapper interestMapper;
+  private final ApplicationEventPublisher eventPublisher;
 
   @Override
   @Transactional
@@ -153,6 +156,18 @@ public class InterestServiceImpl implements InterestService {
         .map(ik -> ik.getKeyword().getKeyword())
         .collect(Collectors.toList());
 
+    // ⭐️⭐️구독 여부 가져오는 코드 추가 필요!!
+
+    // 키워드 수정 이벤트 발행
+    eventPublisher.publishEvent(
+            InterestUpdatedEvent.of(
+                interest.getId(),
+                keywords
+            ));
+
+
+    log.info("interestId = {}, 관심사 키워드 수정 완료 : {}", interestId, keywords);
+
     return interestMapper.toInterestDto(interest, keywords, subscribedByMe);
   }
 
@@ -163,6 +178,10 @@ public class InterestServiceImpl implements InterestService {
         .orElseThrow(InterestNotFoundException::new);
 
     interestRepository.delete(interest);
+
+    eventPublisher.publishEvent(InterestDeletedEvent.of(interest.getId()));
+
+    log.info("관심사 삭제 완료 : interestId = {}", interestId);
   }
 
 

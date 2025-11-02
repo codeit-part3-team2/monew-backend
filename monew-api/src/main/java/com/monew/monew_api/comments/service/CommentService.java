@@ -12,10 +12,8 @@ import com.monew.monew_api.comments.repository.CommentRepository;
 import com.monew.monew_api.common.exception.comment.*;
 import com.monew.monew_api.domain.user.User;
 import com.monew.monew_api.domain.user.repository.UserRepository;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,19 +37,22 @@ public class CommentService {
 		User user = getUserById(request.userId());
 		Article article = getArticleById(request.articleId());
 
-		log.info("[COMMENT_COUNT] 댓글 작성 전 카운트: {}", article.getCommentCount());
 		Comment saved = commentRepository.save(Comment.of(user, article, request.content()));
 		log.info("[COMMENT][CREATE] userId={}, articleId={}, commentId={}",
 			user.getId(), article.getId(), saved.getId());
 
 		eventPublisher.publishEvent(
-			new CommentCreatedEvent(saved.getId(), user.getId(), article.getId(), saved.getCreatedAt())
+			CommentCreatedEvent.of(
+                    saved.getId(),
+                    saved.getArticleId(),
+                    article.getTitle(),
+                    saved.getUserId(),
+                    user.getNickname(),
+                    saved.getContent(),
+                    saved.getLikeCount(),
+                    saved.getCreatedAt())
 		);
 
-		article.increaseCommentCount();
-		articleRepository.save(article);
-
-		log.info("[COMMENT_COUNT] 댓글 작성 후 카운트: {}", article.getCommentCount());
 		return CommentDto.from(saved, false);
 	}
 
@@ -81,8 +82,19 @@ public class CommentService {
 		comment.increaseLike();
 
 		eventPublisher.publishEvent(
-			new CommentLikedEvent(comment.getId(), comment.getUserId(), user.getNickname()));
-
+			CommentLikedEvent.of(
+                    saved.getId(),
+                    saved.getCreatedAt(),
+                    commentId,
+                    comment.getArticle().getId(),
+                    comment.getArticle().getTitle(),
+                    comment.getUserId(),
+                    comment.getUser().getNickname(),
+                    comment.getContent(),
+                    comment.getLikeCount(),
+                    comment.getCreatedAt(),
+                    user.getId(),
+                    user.getNickname()));
 		log.info("[COMMENT][LIKE] userId={}, commentId={}", userId, commentId);
 		return CommentLikeDto.from(saved);
 	}
@@ -107,14 +119,7 @@ public class CommentService {
 		log.info("[COMMENT][DELETE][START] commentId={}", commentId);
 		Comment comment = getCommentById(commentId);
 
-		Article article = comment.getArticle();
-		log.info("[COMMENT_COUNT] 댓글 삭제 전 카운트: {}", article.getCommentCount());
-
 		commentRepository.delete(comment);
-
-		article.decreaseCommentCount();
-		articleRepository.save(article);
-		log.info("[COMMENT_COUNT] 댓글 삭제 후 카운트: {}", article.getCommentCount());
 		log.info("[COMMENT][DELETE] commentId={}", commentId);
 	}
 
