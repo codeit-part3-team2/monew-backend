@@ -15,9 +15,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -28,10 +32,17 @@ public class NaverNewsItemWriter implements ItemWriter<List<ArticleInterestPair>
     private final ArticleRepository articleRepository;
     private final InterestArticlesRepository interestArticlesRepository;
     private final InterestArticleKeywordRepository interestArticleKeywordRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${monew.api.url}")
+    private String monewApiUrl;
 
     @Override
     public void write(Chunk<? extends List<ArticleInterestPair>> chunk) {
         int total = 0, newCount = 0, linkedCount = 0, skippedCount = 0;
+
+        // <관심사ID, 새롭게 연결된 기사 수> 집계용 맵
+        Map<Long, Integer> newLinkCountsByInterestId = new HashMap<>();
 
         for (List<ArticleInterestPair> batch : chunk) {
             for (ArticleInterestPair pair : batch) {
@@ -46,10 +57,20 @@ public class NaverNewsItemWriter implements ItemWriter<List<ArticleInterestPair>
                 Article savedArticle = handleRestoreAndFind(article);
 
                 // 2. 관심사·기사·키워드 관계 처리
-                ProcessResult result = handleInterestAndKeywords(savedArticle, interest);
+                ProcessResult result = handleInterestAndKeywords(savedArticle, interest, newLinkCountsByInterestId);
 
                 linkedCount += result.linkedCount();
                 skippedCount += result.skippedCount();
+            }
+        }
+
+        if (!newLinkCountsByInterestId.isEmpty()) {
+            try {
+                String apiUrl = monewApiUrl + "/api/internal/notifications/articles-registered";
+                restTemplate.postForEntity(apiUrl, newLinkCountsByInterestId, Void.class);
+                log.info("API 서버에 알림 생성 요청 완료: {}개 관심사", newLinkCountsByInterestId.size());
+            } catch (Exception e) {
+                log.error("API 서버 알림 생성 요청 실패");
             }
         }
 
@@ -82,7 +103,8 @@ public class NaverNewsItemWriter implements ItemWriter<List<ArticleInterestPair>
     /**
      * 관심사-기사 관계 및 키워드 연결 처리
      */
-    private ProcessResult handleInterestAndKeywords(Article article, Interest interest) {
+    private ProcessResult handleInterestAndKeywords(Article article, Interest interest,
+                                                    Map<Long, Integer> newLinkCountsByInterestId) {
         int linkedCount = 0;
         int skippedCount = 0;
 
@@ -93,6 +115,11 @@ public class NaverNewsItemWriter implements ItemWriter<List<ArticleInterestPair>
                             InterestArticles newLink = new InterestArticles(article, interest);
                             interestArticlesRepository.save(newLink);
                             log.info("🔗 [{}] 관심사-기사 연결 완료: {}", interest.getName(), article.getTitle());
+
+                            // 알림 이벤트 생성용 <관심사, 추가된 기사 개수> 처리
+                            newLinkCountsByInterestId.put(interest.getId(),
+                                    newLinkCountsByInterestId.getOrDefault(interest.getId(), 0) + 1);
+
                             return newLink;
                         });
 
