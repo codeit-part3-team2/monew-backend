@@ -8,6 +8,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 뉴스 기사 테이블
@@ -42,6 +44,8 @@ public class Article extends BaseIdEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted = false;
 
+    @OneToMany(mappedBy = "article", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InterestArticles> interestArticles = new ArrayList<>();
 
     public Article(String source, String sourceUrl, String title, LocalDateTime publishDate, String summary) {
         this.source = source;

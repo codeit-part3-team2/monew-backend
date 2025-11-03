@@ -1,9 +1,9 @@
 package com.monew.monew_batch.article.dto;
 
 import com.monew.monew_api.article.entity.Article;
-import com.monew.monew_api.interest.entity.Interest;
+import com.monew.monew_api.interest.entity.Keyword;
 
-public record ArticleInterestPair(
+public record ArticleKeywordPair(
         Article article,
-        Interest interest
+        Keyword keyword
 ) {}

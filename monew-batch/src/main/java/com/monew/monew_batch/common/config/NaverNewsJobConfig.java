@@ -1,7 +1,7 @@
 package com.monew.monew_batch.common.config;
 
-import com.monew.monew_api.interest.entity.Interest;
-import com.monew.monew_batch.article.dto.ArticleInterestPair;
+import com.monew.monew_api.interest.entity.Keyword;
+import com.monew.monew_batch.article.dto.ArticleKeywordPair;
 import com.monew.monew_batch.article.job.NaverNewsItemProcessor;
 import com.monew.monew_batch.article.job.NaverNewsItemReader;
 import com.monew.monew_batch.article.job.NaverNewsItemWriter;
@@ -43,7 +43,7 @@ public class NaverNewsJobConfig {
     public Step naverNewsStep(JobRepository jobRepository,
                               PlatformTransactionManager transactionManager) {
         return new StepBuilder("naverNewsStep", jobRepository)
-                .<Interest, List<ArticleInterestPair>>chunk(1, transactionManager)
+                .<Keyword, List<ArticleKeywordPair>>chunk(1, transactionManager)
                 .reader(reader)
                 .processor(processor)
                 .writer(writer)
@@ -51,13 +51,10 @@ public class NaverNewsJobConfig {
                 .build();
     }
 
-    /**
-     * 스레드 동시성은 TaskExecutor에서 직접 설정
-     */
     @Bean
     public TaskExecutor taskExecutor() {
         SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("naver-news-thread-");
-        executor.setConcurrencyLimit(5);
+        executor.setConcurrencyLimit(2);
         return executor;
     }
 

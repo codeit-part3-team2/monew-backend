@@ -7,6 +7,9 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * 기사 - 관심사 연결 테이블
  */
@@ -27,8 +30,6 @@ public class InterestArticles extends BaseIdEntity {
     @JoinColumn(name = "interest_id", nullable = false)
     private Interest interest;
 
-    public InterestArticles(Article article, Interest interest) {
-        this.article = article;
-        this.interest = interest;
-    }
+    @OneToMany(mappedBy = "interestArticle", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<InterestArticleKeyword> interestArticleKeywords = new ArrayList<>();
 }

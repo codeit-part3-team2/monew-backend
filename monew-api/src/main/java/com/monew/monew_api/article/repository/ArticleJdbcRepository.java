@@ -1,4 +1,4 @@
-package com.monew.monew_batch.article.repository;
+package com.monew.monew_api.article.repository;
 
 import com.monew.monew_api.article.entity.Article;
 import lombok.RequiredArgsConstructor;

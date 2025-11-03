@@ -9,10 +9,12 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 
 import java.util.TimeZone;
 
-@SpringBootApplication(scanBasePackages = {
-    "com.monew.monew_batch"
-//    "com.monew.monew_api"
-})
+@SpringBootApplication(
+		scanBasePackages = {
+				"com.monew.monew_batch",
+				"com.monew.monew_api.article.repository",
+		}
+)
 @EntityScan(basePackages = "com.monew.monew_api")
 @EnableJpaRepositories(basePackages = "com.monew.monew_api")
 @EnableScheduling

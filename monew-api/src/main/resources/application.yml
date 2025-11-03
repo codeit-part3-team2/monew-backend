@@ -5,3 +5,9 @@ spring:
     active: dev
   config:
     import: optional:file:../.env[.properties],optional:file:.env[.properties]
+
+aws:
+  accessKeyId: ${AWS_S3_ACCESS_KEY}
+  secretKey: ${AWS_S3_SECRET_KEY}
+  region: ${AWS_S3_REGION}
+  bucket: ${AWS_S3_BUCKET}
