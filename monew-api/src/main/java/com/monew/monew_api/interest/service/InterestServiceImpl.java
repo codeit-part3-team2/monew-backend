@@ -163,6 +163,8 @@ public class InterestServiceImpl implements InterestService {
     return interestMapper.toInterestDto(interest, keywords, false);
   }
 
+  @Override
+  @Transactional
   public void deleteInterest(Long interestId) {
     Interest interest = interestRepository.findById(interestId)
             .orElseThrow(InterestNotFoundException::new);
