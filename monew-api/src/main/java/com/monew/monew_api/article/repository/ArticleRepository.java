@@ -8,6 +8,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ArticleRepository extends JpaRepository<Article, Long>, ArticleQueryRepository {
 
@@ -21,15 +22,6 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, Article
     /** 기사 URL로 중복 여부 확인 (뉴스 중복 방지용) */
     Optional<Article> findBySourceUrl(String sourceUrl);
 
-    /** 논리 삭제된 기사 복구 (isDeleted = false) */
-    @Modifying
-    @Query("""
-        UPDATE Article a
-        SET a.isDeleted = false
-        WHERE a.sourceUrl = :sourceUrl AND a.isDeleted = true
-    """)
-    int restoreIfDeleted(@Param("sourceUrl") String sourceUrl);
-
     /** 여러 기사 논리 삭제 (isDeleted = true) */
     @Modifying(clearAutomatically = true)
     @Query("""
@@ -41,4 +33,7 @@ public interface ArticleRepository extends JpaRepository<Article, Long>, Article
 
     /** 논리 삭제된 기사 전체 조회 (스케줄러 등에서 사용) */
     List<Article> findAllByIsDeletedTrue();
+
+    @Query("SELECT a.sourceUrl FROM Article a")
+    Set<String> findAllSourceUrls();
 }

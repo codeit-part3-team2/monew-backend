@@ -8,9 +8,7 @@ import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import org.springframework.stereotype.Repository;
 
-@Repository
 public interface KeywordRepository extends JpaRepository<Keyword, Long> {
 
   Optional<Keyword> findByKeyword(String keyword);
@@ -23,6 +21,4 @@ public interface KeywordRepository extends JpaRepository<Keyword, Long> {
       + ")"
   )
   List<Keyword> findOrphanKeywordsIn(@Param("keywords") Collection<Keyword> keywords);
-
-
 }

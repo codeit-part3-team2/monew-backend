@@ -5,13 +5,16 @@ import com.monew.monew_api.article.dto.ArticleSearchRequest;
 import com.monew.monew_api.article.dto.ArticleViewDto;
 import com.monew.monew_api.article.dto.CursorPageResponseArticleDto;
 import com.monew.monew_api.article.service.ArticleService;
+import com.monew.monew_api.article.service.NewsRestoreService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Slf4j
@@ -21,6 +24,7 @@ import java.util.List;
 public class ArticleController {
 
     private final ArticleService articleService;
+    private final NewsRestoreService newsRestoreService;
 
     /**
      * 기사 조회 기록 등록
@@ -103,10 +107,12 @@ public class ArticleController {
         return ResponseEntity.noContent().build();
     }
 
-    // RSS 문제
-    // 포폴
-
-    // S3
-    // S3
-    // 로직 (A이베
+    @GetMapping("/restore")
+    public ResponseEntity<String> restoreBackup(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to
+    ) {
+        newsRestoreService.restoreArticles(from, to);
+        return ResponseEntity.ok("복원 완료");
+    }
 }

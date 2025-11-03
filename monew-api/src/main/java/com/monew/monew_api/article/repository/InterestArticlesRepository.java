@@ -4,6 +4,7 @@ import com.monew.monew_api.article.entity.Article;
 import com.monew.monew_api.article.entity.InterestArticles;
 import com.monew.monew_api.interest.entity.Interest;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -38,4 +39,17 @@ public interface InterestArticlesRepository extends JpaRepository<InterestArticl
 
     /** 특정 기사와 관심사 간의 연결이 이미 존재하는지 확인 */
     Optional<InterestArticles> findByArticleAndInterest(Article article, Interest interest);
+
+    @Modifying
+    @Query(
+            value = """
+            INSERT INTO interest_articles (interest_id, article_id, created_at, updated_at)
+            VALUES (:interestId, :articleId, NOW(), NOW())
+            ON CONFLICT (interest_id, article_id) DO NOTHING
+        """,
+            nativeQuery = true
+    )
+    int insertIgnore(
+            @Param("interestId") Long interestId,
+            @Param("articleId") Long articleId);
 }
