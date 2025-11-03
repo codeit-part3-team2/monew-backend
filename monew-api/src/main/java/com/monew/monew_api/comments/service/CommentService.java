@@ -32,27 +32,32 @@ public class CommentService {
 	// 댓글 작성
 	@Transactional
 	public CommentDto register(CommentRegisterRequest request) {
-		log.info("[COMMENT][CREATE][START] userId={}, articleId={}", request.userId(), request.articleId());
-		User user = getUserById(request.userId());
-		Article article = getArticleById(request.articleId());
+        log.info("[COMMENT][CREATE][START] userId={}, articleId={}", request.userId(), request.articleId());
+        User user = getUserById(request.userId());
+        Article article = getArticleById(request.articleId());
 
-		Comment saved = commentRepository.save(Comment.of(user, article, request.content()));
-		log.info("[COMMENT][CREATE] userId={}, articleId={}, commentId={}",
-			user.getId(), article.getId(), saved.getId());
+        log.info("[COMMENT_COUNT] 댓글 작성 전 카운트: {}", article.getCommentCount());
+        Comment saved = commentRepository.save(Comment.of(user, article, request.content()));
+        log.info("[COMMENT][CREATE] userId={}, articleId={}, commentId={}",
+                user.getId(), article.getId(), saved.getId());
 
-		eventPublisher.publishEvent(
-			CommentCreatedEvent.of(
-                    saved.getId(),
-                    saved.getArticleId(),
-                    article.getTitle(),
-                    saved.getUserId(),
-                    user.getNickname(),
-                    saved.getContent(),
-                    saved.getLikeCount(),
-                    saved.getCreatedAt())
-		);
+        article.increaseCommentCount();
+        articleRepository.save(article);
 
-		return CommentDto.from(saved, false);
+        eventPublisher.publishEvent(
+                CommentCreatedEvent.of(
+                        saved.getId(),
+                        saved.getArticleId(),
+                        article.getTitle(),
+                        saved.getUserId(),
+                        user.getNickname(),
+                        saved.getContent(),
+                        saved.getLikeCount(),
+                        saved.getCreatedAt())
+        );
+
+        log.info("[COMMENT_COUNT] 댓글 작성 후 카운트: {}", article.getCommentCount());
+        return CommentDto.from(saved, false);
 	}
 
 	// 댓글 수정
@@ -117,17 +122,24 @@ public class CommentService {
 		log.info("[COMMENT][DISLIKE] userId={}, commentId={}", userId, commentId);
 	}
 
-	// 댓글 논리 삭제
-	@Transactional
-	public void delete(Long commentId) {
-		log.info("[COMMENT][DELETE][START] commentId={}", commentId);
-		Comment comment = getCommentById(commentId);
+    // 댓글 논리 삭제
+    @Transactional
+    public void delete(Long commentId) {
+        log.info("[COMMENT][DELETE][START] commentId={}", commentId);
+        Comment comment = getCommentById(commentId);
 
+        Article article = comment.getArticle();
+        log.info("[COMMENT_COUNT] 댓글 삭제 전 카운트: {}", article.getCommentCount());
+
+        commentRepository.delete(comment);
+
+        article.decreaseCommentCount();
+        articleRepository.save(article);
         eventPublisher.publishEvent(CommentDeletedEvent.of(commentId));
+        log.info("[COMMENT_COUNT] 댓글 삭제 후 카운트: {}", article.getCommentCount());
+        log.info("[COMMENT][DELETE] commentId={}", commentId);
+    }
 
-		commentRepository.delete(comment);
-		log.info("[COMMENT][DELETE] commentId={}", commentId);
-	}
 
 	// 댓글 물리 삭제
 	@Transactional
