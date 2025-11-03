@@ -1,7 +1,7 @@
 package com.monew.monew_api.notification.entity;
 
 import com.monew.monew_api.common.entity.BaseTimeEntity;
-import com.monew.monew_api.domain.user.User;
+import com.monew.monew_api.user.User;
 import com.monew.monew_api.notification.enums.ResourceType;
 import jakarta.persistence.*;
 import lombok.AccessLevel;

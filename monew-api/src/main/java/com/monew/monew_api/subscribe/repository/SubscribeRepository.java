@@ -1,6 +1,6 @@
 package com.monew.monew_api.subscribe.repository;
 
-import com.monew.monew_api.domain.user.User;
+import com.monew.monew_api.user.User;
 import com.monew.monew_api.interest.entity.Interest;
 import com.monew.monew_api.subscribe.entity.Subscribe;
 import java.util.List;

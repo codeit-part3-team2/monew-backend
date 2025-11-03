@@ -1,4 +1,4 @@
-package com.monew.monew_api.common.user.dto;
+package com.monew.monew_api.user.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

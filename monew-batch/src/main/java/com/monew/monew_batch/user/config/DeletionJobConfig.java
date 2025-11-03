@@ -1,6 +1,6 @@
 package com.monew.monew_batch.user.config;
 
-import com.monew.monew_api.user.entity.User;
+import com.monew.monew_api.user.User;
 import com.monew.monew_batch.user.metrics.DeletionMetrics;
 import jakarta.persistence.EntityManagerFactory;
 import lombok.RequiredArgsConstructor;

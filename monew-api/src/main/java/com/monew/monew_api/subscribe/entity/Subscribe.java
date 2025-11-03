@@ -1,7 +1,7 @@
 package com.monew.monew_api.subscribe.entity;
 
 import com.monew.monew_api.common.entity.BaseCreatedEntity;
-import com.monew.monew_api.domain.user.User;
+import com.monew.monew_api.user.User;
 import com.monew.monew_api.interest.entity.Interest;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;

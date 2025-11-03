@@ -5,7 +5,7 @@ import org.hibernate.annotations.Where;
 
 import com.monew.monew_api.article.entity.Article;
 import com.monew.monew_api.common.entity.BaseTimeEntity;
-import com.monew.monew_api.domain.user.User;
+import com.monew.monew_api.user.User;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

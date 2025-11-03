@@ -1,7 +1,7 @@
 package com.monew.monew_api.notification.repository;
 
 import com.monew.monew_api.common.config.QuerydslConfig;
-import com.monew.monew_api.domain.user.User;
+import com.monew.monew_api.user.User;
 import com.monew.monew_api.notification.entity.Notification;
 import com.monew.monew_api.notification.enums.ResourceType;
 import jakarta.persistence.EntityManager;
