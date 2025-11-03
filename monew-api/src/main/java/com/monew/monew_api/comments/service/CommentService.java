@@ -10,9 +10,8 @@ import com.monew.monew_api.comments.event.CommentLikedEvent;
 import com.monew.monew_api.comments.repository.CommentLikeRepository;
 import com.monew.monew_api.comments.repository.CommentRepository;
 import com.monew.monew_api.common.exception.comment.*;
-import com.monew.monew_api.domain.user.User;
-import com.monew.monew_api.domain.user.repository.UserRepository;
-
+import com.monew.monew_api.user.User;
+import com.monew.monew_api.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 

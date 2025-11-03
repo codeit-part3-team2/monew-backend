@@ -1,7 +1,11 @@
-package com.monew.monew_api.domain.user.controller;
+package com.monew.monew_api.user.controller;
 
-import com.monew.monew_api.domain.user.dto.*;
-import com.monew.monew_api.domain.user.service.UserService;
+import com.monew.monew_api.user.dto.*;
+import com.monew.monew_api.user.dto.UserDto;
+import com.monew.monew_api.user.dto.UserLoginRequest;
+import com.monew.monew_api.user.dto.UserRegisterRequest;
+import com.monew.monew_api.user.dto.UserUpdateRequest;
+import com.monew.monew_api.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -44,19 +48,19 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/api/user/{userId}")
+    @DeleteMapping("/api/users/{userId}")
     public ResponseEntity<Void> softDeleteUser(@PathVariable Long userId) {
-        log.info("[API 요청] DELETE /api/user/{} - 사용자 삭제 요청", userId);
+        log.info("[API 요청] DELETE /api/users/{} - 사용자 삭제 요청", userId);
         userService.softDeleteUser(userId);
-        log.info("[API 응답] DELETE /api/user/{} - 사용자 삭제 성공", userId);
+        log.info("[API 응답] DELETE /api/users/{} - 사용자 삭제 성공", userId);
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/api/user/{userId}/hard")
+    @DeleteMapping("/api/users/{userId}/hard")
     public ResponseEntity<Void> hardDeleteUser(@PathVariable Long userId) {
-        log.info("[API 요청] DELETE /api/user/{}/hard - 사용자 영구 삭제 요청", userId);
+        log.info("[API 요청] DELETE /api/users/{}/hard - 사용자 영구 삭제 요청", userId);
         userService.hardDeleteUser(userId);
-        log.info("[API 응답] DELETE /api/user/{}/hard - 사용자 영구 삭제 성공", userId);
+        log.info("[API 응답] DELETE /api/users/{}/hard - 사용자 영구 삭제 성공", userId);
         return ResponseEntity.noContent().build();
     }
 }

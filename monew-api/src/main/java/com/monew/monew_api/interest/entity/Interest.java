@@ -1,8 +1,6 @@
 package com.monew.monew_api.interest.entity;
 
 import com.monew.monew_api.common.entity.BaseTimeEntity;
-import com.monew.monew_api.domain.user.User;
-import com.monew.monew_api.subscribe.entity.Subscribe;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

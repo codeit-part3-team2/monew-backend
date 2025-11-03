@@ -22,7 +22,7 @@ import static com.monew.monew_api.article.entity.QArticle.article;
 import static com.monew.monew_api.article.entity.QArticleView.articleView;
 import static com.monew.monew_api.comments.entity.QComment.comment;
 import static com.monew.monew_api.comments.entity.QCommentLike.commentLike;
-import static com.monew.monew_api.domain.user.QUser.user;
+import static com.monew.monew_api.user.QUser.user;
 import static com.monew.monew_api.interest.entity.QInterest.interest;
 import static com.monew.monew_api.interest.entity.QInterestKeyword.interestKeyword;
 import static com.monew.monew_api.subscribe.entity.QSubscribe.subscribe;
