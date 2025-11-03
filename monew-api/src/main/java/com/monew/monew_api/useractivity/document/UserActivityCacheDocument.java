@@ -34,6 +34,6 @@ public class UserActivityCacheDocument {
     private List<CommentLikeActivityDto> commentLikes;
     private List<ArticleViewActivityDto> articleViews;
 
-    @Indexed(name = "cache_ttl", expireAfter = "1h")
-    private LocalDateTime updatedAt;
+    @Indexed(expireAfter = "1h")
+    private LocalDateTime cachedAt;
 }
