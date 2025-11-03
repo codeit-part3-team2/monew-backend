@@ -44,19 +44,19 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
-    @DeleteMapping("/api/user/{userId}")
+    @DeleteMapping("/api/users/{userId}")
     public ResponseEntity<Void> softDeleteUser(@PathVariable Long userId) {
-        log.info("[API 요청] DELETE /api/user/{} - 사용자 삭제 요청", userId);
+        log.info("[API 요청] DELETE /api/users/{} - 사용자 삭제 요청", userId);
         userService.softDeleteUser(userId);
-        log.info("[API 응답] DELETE /api/user/{} - 사용자 삭제 성공", userId);
+        log.info("[API 응답] DELETE /api/users/{} - 사용자 삭제 성공", userId);
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/api/user/{userId}/hard")
+    @DeleteMapping("/api/users/{userId}/hard")
     public ResponseEntity<Void> hardDeleteUser(@PathVariable Long userId) {
-        log.info("[API 요청] DELETE /api/user/{}/hard - 사용자 영구 삭제 요청", userId);
+        log.info("[API 요청] DELETE /api/users/{}/hard - 사용자 영구 삭제 요청", userId);
         userService.hardDeleteUser(userId);
-        log.info("[API 응답] DELETE /api/user/{}/hard - 사용자 영구 삭제 성공", userId);
+        log.info("[API 응답] DELETE /api/users/{}/hard - 사용자 영구 삭제 성공", userId);
         return ResponseEntity.noContent().build();
     }
 }
