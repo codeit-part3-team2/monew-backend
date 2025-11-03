@@ -1,13 +1,7 @@
 package com.monew.monew_api.interest.service;
 
-import com.monew.monew_api.article.repository.ArticleRepository;
-import com.monew.monew_api.article.repository.InterestArticleKeywordRepository;
-import com.monew.monew_api.article.repository.InterestArticlesRepository;
 import com.monew.monew_api.common.exception.interest.InterestDuplicatedException;
 import com.monew.monew_api.common.exception.interest.InterestNotFoundException;
-import com.monew.monew_api.common.exception.user.UserNotFoundException;
-import com.monew.monew_api.user.User;
-import com.monew.monew_api.user.repository.UserRepository;
 import com.monew.monew_api.interest.dto.InterestOrderBy;
 import com.monew.monew_api.interest.dto.request.CursorPageRequestInterestDto;
 import com.monew.monew_api.interest.dto.request.InterestRegisterRequest;
@@ -45,13 +39,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class InterestServiceImpl implements InterestService {
 
   private final InterestRepository interestRepository;
-  private final UserRepository userRepository;
   private final KeywordRepository keywordRepository;
   private final SubscribeRepository subscribeRepository;
-
-  private final ArticleRepository articleRepository;
-  private final InterestArticlesRepository interestArticlesRepository;
-  private final InterestArticleKeywordRepository interestArticleKeywordRepository;
 
   private final InterestMapper interestMapper;
 
@@ -167,35 +156,9 @@ public class InterestServiceImpl implements InterestService {
   @Transactional
   public void deleteInterest(Long interestId) {
     Interest interest = interestRepository.findById(interestId)
-            .orElseThrow(InterestNotFoundException::new);
-
-    List<Long> articleIds = interestArticlesRepository.findArticleIdsByInterestId(interestId);
-    log.info("관심사({})와 연결된 기사 수: {}", interest.getName(), articleIds.size());
-
-    if (articleIds.isEmpty()) {
-      interestRepository.delete(interest);
-      return;
-    }
-
-    List<Long> usedElsewhere =
-            interestArticlesRepository.findArticleIdsUsedByOtherInterests(articleIds, interestId);
-
-    List<Long> toDelete = articleIds.stream()
-            .filter(id -> !usedElsewhere.contains(id))
-            .toList();
-
-    int deletedCount = toDelete.size();
-    int undeletedCount = usedElsewhere.size();
-
-    if (!toDelete.isEmpty()) {
-      articleRepository.markAsDeleted(toDelete);
-      log.info("논리 삭제된 기사 수: {}", deletedCount);
-    }
-
-    log.info("삭제 제외된 기사 수(다른 관심사에서 사용 중): {}", undeletedCount);
+        .orElseThrow(InterestNotFoundException::new);
 
     interestRepository.delete(interest);
-    log.info("관심사 삭제 완료: {}", interest.getName());
   }
 
 
@@ -276,40 +239,17 @@ public class InterestServiceImpl implements InterestService {
 
 
   private void removeOrphanKeywords(Interest interest, Map<String, InterestKeyword> toRemove) {
-    if (toRemove.isEmpty()) return;
+    if (toRemove.isEmpty()) {
+      return;
+    }
+    List<Keyword> removedKeyword = new ArrayList<>();
 
-    List<Keyword> removedKeywords = toRemove.values().stream()
-            .map(InterestKeyword::getKeyword)
-            .toList();
-
-    interest.getKeywords().removeAll(toRemove.values());
-
-    List<Long> removedKeywordIds = removedKeywords.stream()
-            .map(Keyword::getId)
-            .toList();
-
-    List<Long> relatedArticleIds =
-            interestArticleKeywordRepository.findArticleIdsByKeywordIds(removedKeywordIds);
-    log.info("고아 키워드 관련 기사 수: {}", relatedArticleIds.size());
-
-    if (!relatedArticleIds.isEmpty()) {
-      List<Long> usedElsewhere = interestArticleKeywordRepository.findArticlesUsedElsewhere(
-              relatedArticleIds, removedKeywordIds, interest.getId());
-
-      List<Long> toDelete = relatedArticleIds.stream()
-              .filter(id -> !usedElsewhere.contains(id))
-              .toList();
-
-      if (!toDelete.isEmpty()) {
-        articleRepository.markAsDeleted(toDelete);
-        log.info("논리 삭제된 기사 수: {}", toDelete.size());
-      }
-
-      log.info("삭제 제외된 기사 수(다른 관심사/키워드 사용 중): {}", usedElsewhere.size());
+    for (InterestKeyword interestKeyword : toRemove.values()) {
+      interest.getKeywords().remove(interestKeyword);
+      removedKeyword.add(interestKeyword.getKeyword());
     }
 
-    List<Keyword> orphanKeywords = keywordRepository.findOrphanKeywordsIn(removedKeywords);
-    keywordRepository.deleteAll(orphanKeywords);
-    log.info("고아 키워드 삭제 완료: {}", orphanKeywords.size());
+    List<Keyword> toDelete = keywordRepository.findOrphanKeywordsIn(removedKeyword);
+    keywordRepository.deleteAll(toDelete);
   }
 }
