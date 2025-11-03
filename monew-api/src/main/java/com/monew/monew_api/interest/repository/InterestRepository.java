@@ -1,9 +1,11 @@
 package com.monew.monew_api.interest.repository;
 
 import com.monew.monew_api.interest.entity.Interest;
+import com.monew.monew_api.interest.entity.Keyword;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 import java.util.Optional;
@@ -17,7 +19,7 @@ public interface InterestRepository extends JpaRepository<Interest, Long>, Inter
                 JOIN FETCH ik.keyword k
                 WHERE k = :keyword
             """)
-    List<Interest> findAllWithKeywords();
+    List<Interest> findAllByKeyword(@Param("keyword") Keyword keyword);
 
     /**
      * 특정 관심사와 해당 관심사에 연결된 키워드들을 함께 조회

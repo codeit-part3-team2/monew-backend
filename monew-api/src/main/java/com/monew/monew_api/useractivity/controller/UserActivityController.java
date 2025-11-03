@@ -6,10 +6,7 @@ import com.monew.monew_api.useractivity.service.UserActivityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
@@ -29,7 +26,10 @@ public class UserActivityController {
      여러 쿼리 사용시 getUserActivity 메서드
      */
     @GetMapping("/{userId}")
-    public ResponseEntity<UserActivityDto> getUserActivity(@PathVariable String userId) {
+    public ResponseEntity<UserActivityDto> getUserActivity(
+            @PathVariable String userId,
+            @RequestHeader(value = "MoNew-Request-User-ID", required = false) Long requesterId
+    ) {
         log.info("[활동내역 API 요청]: userId={}", userId);
 
 //        UserActivityDto activity = userActivityService.getUserActivitySingleQuery(userId);

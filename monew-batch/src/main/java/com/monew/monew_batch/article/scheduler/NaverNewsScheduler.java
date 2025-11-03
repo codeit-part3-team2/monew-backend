@@ -19,8 +19,8 @@ public class NaverNewsScheduler {
     private final JobLauncher jobLauncher;
     private final Job naverNewsJob;
 
-    @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
-//    @Scheduled(fixedRate = 60000) // 테스트용
+//    @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
+    @Scheduled(fixedRate = 60000) // 테스트용
     public void runJob() throws Exception {
         log.info("🕒 [Batch Scheduler] 네이버 뉴스 수집 Job 실행");
 

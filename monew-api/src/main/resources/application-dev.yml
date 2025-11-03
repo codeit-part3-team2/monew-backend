@@ -15,7 +15,7 @@ spring:
 
   sql:
     init:
-      mode: always  # 수동으로 제어하려면 never, 자동 실행하려면 always
+      mode: never  # 수동으로 제어하려면 never, 자동 실행하려면 always
       schema-locations: classpath:db/schema.sql
       data-locations:
         - classpath:db/data/data-users.sql

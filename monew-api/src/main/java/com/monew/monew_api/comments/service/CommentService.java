@@ -86,22 +86,24 @@ public class CommentService {
 		Comment comment = getCommentById(commentId);
 		log.info("[COMMENT][LIKE] 엔티티 조회 완료 - user={}, comment={}", user.getId(), comment.getId());
 		CommentLike saved = commentLikeRepository.save(CommentLike.of(user, comment));
+
+        eventPublisher.publishEvent(
+                CommentLikedEvent.of(
+                        saved.getId(),
+                        saved.getCreatedAt(),
+                        commentId,
+                        comment.getArticle().getId(),
+                        comment.getArticle().getTitle(),
+                        comment.getUserId(),
+                        comment.getUser().getNickname(),
+                        comment.getContent(),
+                        comment.getLikeCount(),
+                        comment.getCreatedAt(),
+                        user.getId(),
+                        user.getNickname()));
+
 		comment.increaseLike();
 
-		eventPublisher.publishEvent(
-			CommentLikedEvent.of(
-                    saved.getId(),
-                    saved.getCreatedAt(),
-                    commentId,
-                    comment.getArticle().getId(),
-                    comment.getArticle().getTitle(),
-                    comment.getUserId(),
-                    comment.getUser().getNickname(),
-                    comment.getContent(),
-                    comment.getLikeCount(),
-                    comment.getCreatedAt(),
-                    user.getId(),
-                    user.getNickname()));
 		log.info("[COMMENT][LIKE] userId={}, commentId={}", userId, commentId);
 		return CommentLikeDto.from(saved);
 	}
@@ -115,9 +117,10 @@ public class CommentService {
 			throw new CommentNotLikedException();
 
 		commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId);
-		commentRepository.decLikeCount(commentId);
 
         eventPublisher.publishEvent(CommentUnlikedEvent.of(commentId, userId));
+
+		commentRepository.decLikeCount(commentId);
 
 		log.info("[COMMENT][DISLIKE] userId={}, commentId={}", userId, commentId);
 	}
