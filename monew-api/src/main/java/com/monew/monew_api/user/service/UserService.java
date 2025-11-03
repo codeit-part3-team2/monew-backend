@@ -1,11 +1,15 @@
-package com.monew.monew_api.domain.user.service;
+package com.monew.monew_api.user.service;
 
 import com.monew.monew_api.common.exception.user.UserEmailDuplicateException;
 import com.monew.monew_api.common.exception.user.UserNotFoundException;
 import com.monew.monew_api.common.exception.user.UserUnauthorizedException;
-import com.monew.monew_api.domain.user.User;
-import com.monew.monew_api.domain.user.dto.*;
-import com.monew.monew_api.domain.user.repository.UserRepository;
+import com.monew.monew_api.user.User;
+import com.monew.monew_api.user.dto.*;
+import com.monew.monew_api.user.dto.UserDto;
+import com.monew.monew_api.user.dto.UserLoginRequest;
+import com.monew.monew_api.user.dto.UserRegisterRequest;
+import com.monew.monew_api.user.dto.UserUpdateRequest;
+import com.monew.monew_api.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;

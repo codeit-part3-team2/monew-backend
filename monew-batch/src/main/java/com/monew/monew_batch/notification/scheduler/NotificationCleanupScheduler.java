@@ -19,7 +19,7 @@ public class NotificationCleanupScheduler {
     private final Job deleteOldNotificationJob;
 
     // 한국 기준 오전 4시
-    @Scheduled(cron = "0 0 19 * * *", zone = "UTC")
+    @Scheduled(cron = "0 30 4 * * *", zone = "Asia/Seoul")
     public void runDeleteOldNotificationJob() {
         try {
             JobParameters parameters = new JobParametersBuilder()

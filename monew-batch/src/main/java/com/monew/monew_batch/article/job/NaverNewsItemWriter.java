@@ -16,9 +16,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -30,6 +34,10 @@ public class NaverNewsItemWriter implements ItemWriter<List<ArticleKeywordPair>>
     private final InterestRepository interestRepository;
     private final InterestArticlesRepository interestArticlesRepository;
     private final InterestArticleKeywordRepository interestArticleKeywordRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${monew.api.url}")
+    private String monewApiUrl;
 
     @Override
     public void write(Chunk<? extends List<ArticleKeywordPair>> chunk) {

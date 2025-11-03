@@ -12,14 +12,25 @@ spring:
     jdbc:
       initialize-schema: always
 
+batch:
+  user-deletion:
+    chunk-size: 10
+    # [요구사항] 1일 후 삭제
+    # [프로토타입] 5분으로 설정
+    retention-minutes: 5
+
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,metrics
+        include: health,info,metrics,prometheus
   endpoint:
     health:
       show-details: always
+  prometheus:
+    metrics:
+      export:
+        enabled: true
 
 logging:
   level:
