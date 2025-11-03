@@ -21,7 +21,7 @@ public class NotificationEventListener {
         try {
             notificationService.createCommentLikeNotification(event);
         } catch (Exception e) {
-            log.error("알림 생성 실패: {}", event.commentId(), e);
+            log.error("좋아요 알림 생성 실패: {}", event.commentId(), e);
         }
     }
 }
