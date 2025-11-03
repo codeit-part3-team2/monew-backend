@@ -1,7 +1,13 @@
 package com.monew.monew_api.interest.service;
 
+import com.monew.monew_api.article.repository.ArticleRepository;
+import com.monew.monew_api.article.repository.InterestArticleKeywordRepository;
+import com.monew.monew_api.article.repository.InterestArticlesRepository;
 import com.monew.monew_api.common.exception.interest.InterestDuplicatedException;
 import com.monew.monew_api.common.exception.interest.InterestNotFoundException;
+import com.monew.monew_api.common.exception.user.UserNotFoundException;
+import com.monew.monew_api.user.User;
+import com.monew.monew_api.user.repository.UserRepository;
 import com.monew.monew_api.interest.dto.InterestOrderBy;
 import com.monew.monew_api.interest.dto.request.CursorPageRequestInterestDto;
 import com.monew.monew_api.interest.dto.request.InterestRegisterRequest;
@@ -42,6 +48,10 @@ public class InterestServiceImpl implements InterestService {
   private final KeywordRepository keywordRepository;
   private final SubscribeRepository subscribeRepository;
 
+  private final ArticleRepository articleRepository;
+  private final InterestArticlesRepository interestArticlesRepository;
+  private final InterestArticleKeywordRepository interestArticleKeywordRepository;
+
   private final InterestMapper interestMapper;
 
   @Override
@@ -75,7 +85,7 @@ public class InterestServiceImpl implements InterestService {
         .map(ik -> ik.getKeyword().getKeyword())
         .collect(Collectors.toList());
 
-    return interestMapper.toInterestDto(savedInterest, keywords, false);
+    return interestMapper.toDto(savedInterest, keywords, false);
   }
 
   @Override
@@ -87,7 +97,7 @@ public class InterestServiceImpl implements InterestService {
         ? null : request.keyword();
     final InterestOrderBy orderBy =
         (request.orderBy() == null) ? InterestOrderBy.name : request.orderBy();
-    final Order direction = (request.direction() == null)? Order.ASC : request.direction();
+    final Order direction = (request.direction() == null) ? Order.ASC : request.direction();
     final String cursor = request.cursor();
     final LocalDateTime after = request.after();
     final int limit = request.limit();
@@ -104,35 +114,40 @@ public class InterestServiceImpl implements InterestService {
     // 내가 구독중인 관심사 ID
     Set<Long> subscribedIds = subscribeRepository.findSubscribedByInterestIds(userId,
         interestIds);
-    // 관심사별 구독자 수 벌크 집계
-    Map<Long, Long> countMap = subscribeRepository.countByInterestIds(interestIds).stream()
-        .collect(Collectors.toMap(
-            InterestCountProjection::getInterestId,
-            InterestCountProjection::getCount
-        ));
-
     // dto 채우기
     List<InterestDto> interestDtos = new ArrayList<>(interests.size());
     for (Interest interest : interests) {
       List<String> keywords = interest.getKeywords().stream()
           .map(ik -> ik.getKeyword().getKeyword())
           .toList();
-
+      int subscriberCount = interest.getSubscriberCount();
       boolean subscribedByMe = subscribedIds.contains(interest.getId());
+      InterestDto dto = interestMapper.toInterestDto(interest, keywords, subscribedByMe,
+          subscriberCount);
 
-      Long countLong = countMap.getOrDefault(interest.getId(), 0L);
-      int subscriberCount = Math.toIntExact(countLong);
-      interestDtos.add(
-          interestMapper.toInterestDto(interest, keywords, subscribedByMe, subscriberCount));
+      log.info("DBG dto id={}, name={}, subscriberCount={} subscribedByMe={}",
+          dto.id(), dto.name(), dto.subscriberCount(), dto.subscribedByMe());
+      interestDtos.add(dto);
     }
 
-    boolean hasNext = slices.hasNext();
-    String nextCursor = calculateNextCursor(interests, countMap, orderBy, hasNext);
-    LocalDateTime nextAfter = calculateNextAfter(interests);
     long totalElements = interestRepository.countFilteredTotalElements(keyword);
+    boolean hasNext = slices.hasNext();
 
-    return new CursorPageResponseInterestDto(
-        interestDtos, nextCursor, nextAfter, limit, totalElements, hasNext);
+    String nextCursor = null;
+    LocalDateTime nextAfter = null;
+    if (hasNext) {
+      Interest last = interests.get(interests.size() - 1);
+
+      if (request.orderBy() == InterestOrderBy.name) {
+        nextCursor = last.getName();
+      } else if (request.orderBy() == InterestOrderBy.subscriberCount) {
+        nextCursor = String.valueOf(last.getId());
+      }
+      nextAfter = last.getCreatedAt();
+    }
+
+    return new CursorPageResponseInterestDto(interestDtos, nextCursor, nextAfter,
+        slices.getSize(), totalElements, hasNext);
   }
 
   @Override
@@ -149,7 +164,7 @@ public class InterestServiceImpl implements InterestService {
         .map(ik -> ik.getKeyword().getKeyword())
         .collect(Collectors.toList());
 
-    return interestMapper.toInterestDto(interest, keywords, false);
+    return interestMapper.toDto(interest, keywords, false);
   }
 
   @Override
@@ -158,7 +173,33 @@ public class InterestServiceImpl implements InterestService {
     Interest interest = interestRepository.findById(interestId)
         .orElseThrow(InterestNotFoundException::new);
 
+    List<Long> articleIds = interestArticlesRepository.findArticleIdsByInterestId(interestId);
+    log.info("관심사({})와 연결된 기사 수: {}", interest.getName(), articleIds.size());
+
+    if (articleIds.isEmpty()) {
+      interestRepository.delete(interest);
+      return;
+    }
+
+    List<Long> usedElsewhere =
+        interestArticlesRepository.findArticleIdsUsedByOtherInterests(articleIds, interestId);
+
+    List<Long> toDelete = articleIds.stream()
+        .filter(id -> !usedElsewhere.contains(id))
+        .toList();
+
+    int deletedCount = toDelete.size();
+    int undeletedCount = usedElsewhere.size();
+
+    if (!toDelete.isEmpty()) {
+      articleRepository.markAsDeleted(toDelete);
+      log.info("논리 삭제된 기사 수: {}", deletedCount);
+    }
+
+    log.info("삭제 제외된 기사 수(다른 관심사에서 사용 중): {}", undeletedCount);
+
     interestRepository.delete(interest);
+    log.info("관심사 삭제 완료: {}", interest.getName());
   }
 
 
@@ -181,31 +222,6 @@ public class InterestServiceImpl implements InterestService {
     int distance = levenshtein.apply(name1, name2);
     int maxLength = Math.max(name1.length(), name2.length());
     return 1.0 - ((double) distance / maxLength);
-  }
-
-
-  private String calculateNextCursor(
-      List<Interest> interests,
-      Map<Long, Long> countMap,
-      InterestOrderBy orderBy,
-      boolean hasNext
-  ) {
-    if (!hasNext || interests.isEmpty()) return null;
-
-    Interest last = interests.get(interests.size() - 1);
-
-    return switch (orderBy) {
-      case name -> last.getName();
-      case subscriberCount -> String.valueOf(last.getId());
-    };
-  }
-
-
-  private LocalDateTime calculateNextAfter(List<Interest> interests) {
-    if (!interests.isEmpty()) {
-      return interests.get(interests.size() - 1).getCreatedAt();
-    }
-    return null;
   }
 
 
@@ -242,14 +258,39 @@ public class InterestServiceImpl implements InterestService {
     if (toRemove.isEmpty()) {
       return;
     }
-    List<Keyword> removedKeyword = new ArrayList<>();
 
-    for (InterestKeyword interestKeyword : toRemove.values()) {
-      interest.getKeywords().remove(interestKeyword);
-      removedKeyword.add(interestKeyword.getKeyword());
+    List<Keyword> removedKeywords = toRemove.values().stream()
+        .map(InterestKeyword::getKeyword)
+        .toList();
+
+    interest.getKeywords().removeAll(toRemove.values());
+
+    List<Long> removedKeywordIds = removedKeywords.stream()
+        .map(Keyword::getId)
+        .toList();
+
+    List<Long> relatedArticleIds =
+        interestArticleKeywordRepository.findArticleIdsByKeywordIds(removedKeywordIds);
+    log.info("고아 키워드 관련 기사 수: {}", relatedArticleIds.size());
+
+    if (!relatedArticleIds.isEmpty()) {
+      List<Long> usedElsewhere = interestArticleKeywordRepository.findArticlesUsedElsewhere(
+          relatedArticleIds, removedKeywordIds, interest.getId());
+
+      List<Long> toDelete = relatedArticleIds.stream()
+          .filter(id -> !usedElsewhere.contains(id))
+          .toList();
+
+      if (!toDelete.isEmpty()) {
+        articleRepository.markAsDeleted(toDelete);
+        log.info("논리 삭제된 기사 수: {}", toDelete.size());
+      }
+
+      log.info("삭제 제외된 기사 수(다른 관심사/키워드 사용 중): {}", usedElsewhere.size());
     }
 
-    List<Keyword> toDelete = keywordRepository.findOrphanKeywordsIn(removedKeyword);
-    keywordRepository.deleteAll(toDelete);
+    List<Keyword> orphanKeywords = keywordRepository.findOrphanKeywordsIn(removedKeywords);
+    keywordRepository.deleteAll(orphanKeywords);
+    log.info("고아 키워드 삭제 완료: {}", orphanKeywords.size());
   }
 }
