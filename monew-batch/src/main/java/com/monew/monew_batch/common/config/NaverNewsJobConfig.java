@@ -2,6 +2,7 @@ package com.monew.monew_batch.common.config;
 
 import com.monew.monew_api.interest.entity.Keyword;
 import com.monew.monew_batch.article.dto.ArticleKeywordPair;
+import com.monew.monew_batch.article.job.ArticleNotificationRequestListener;
 import com.monew.monew_batch.article.job.NaverNewsItemProcessor;
 import com.monew.monew_batch.article.job.NaverNewsItemReader;
 import com.monew.monew_batch.article.job.NaverNewsItemWriter;
@@ -31,11 +32,13 @@ public class NaverNewsJobConfig {
     private final NaverNewsItemReader reader;
     private final NaverNewsItemProcessor processor;
     private final NaverNewsItemWriter writer;
+    private final ArticleNotificationRequestListener listener;
 
     @Bean
     public Job naverNewsJob(JobRepository jobRepository, Step naverNewsStep) {
         return new JobBuilder("naverNewsJob", jobRepository)
                 .start(naverNewsStep)
+                .listener(listener)
                 .build();
     }
 
