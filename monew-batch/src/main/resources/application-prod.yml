@@ -63,3 +63,7 @@ aws:
     access-key: ${AWS_ACCESS_KEY}
     secret-key: ${AWS_SECRET_KEY}
     bucket: monew-backup
+
+monew:
+  api:
+    url: ${MONEW_API_URL} # 배포 후 추가 필요
