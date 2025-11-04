@@ -13,7 +13,10 @@ import org.mapstruct.Mapping;
 @Mapper(componentModel = "spring")
 public interface InterestMapper {
 
-  InterestDto toInterestDto(Interest interest, List<String> keywords, Boolean subscribedByMe);
+  @Mapping(source = "interest.name", target = "name")
+  @Mapping(source = "keywords", target = "keywords")
+  @Mapping(source = "subscribedByMe", target = "subscribedByMe")
+  InterestDto toDto(Interest interest, List<String> keywords, Boolean subscribedByMe);
 
   @Mapping(target = "subscriberCount", source = "subscriberCount")
   InterestDto toInterestDto(Interest interest, List<String> keywords, Boolean subscribedByMe,

@@ -46,7 +46,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class InterestServiceImpl implements InterestService {
 
   private final InterestRepository interestRepository;
-  private final UserRepository userRepository;
   private final KeywordRepository keywordRepository;
   private final SubscribeRepository subscribeRepository;
 
@@ -88,7 +87,7 @@ public class InterestServiceImpl implements InterestService {
         .map(ik -> ik.getKeyword().getKeyword())
         .collect(Collectors.toList());
 
-    return interestMapper.toInterestDto(savedInterest, keywords, false);
+    return interestMapper.toDto(savedInterest, keywords, false);
   }
 
   @Override
@@ -100,7 +99,7 @@ public class InterestServiceImpl implements InterestService {
         ? null : request.keyword();
     final InterestOrderBy orderBy =
         (request.orderBy() == null) ? InterestOrderBy.name : request.orderBy();
-    final Order direction = (request.direction() == null)? Order.ASC : request.direction();
+    final Order direction = (request.direction() == null) ? Order.ASC : request.direction();
     final String cursor = request.cursor();
     final LocalDateTime after = request.after();
     final int limit = request.limit();
@@ -117,35 +116,40 @@ public class InterestServiceImpl implements InterestService {
     // 내가 구독중인 관심사 ID
     Set<Long> subscribedIds = subscribeRepository.findSubscribedByInterestIds(userId,
         interestIds);
-    // 관심사별 구독자 수 벌크 집계
-    Map<Long, Long> countMap = subscribeRepository.countByInterestIds(interestIds).stream()
-        .collect(Collectors.toMap(
-            InterestCountProjection::getInterestId,
-            InterestCountProjection::getCount
-        ));
-
     // dto 채우기
     List<InterestDto> interestDtos = new ArrayList<>(interests.size());
     for (Interest interest : interests) {
       List<String> keywords = interest.getKeywords().stream()
           .map(ik -> ik.getKeyword().getKeyword())
           .toList();
-
+      int subscriberCount = interest.getSubscriberCount();
       boolean subscribedByMe = subscribedIds.contains(interest.getId());
+      InterestDto dto = interestMapper.toInterestDto(interest, keywords, subscribedByMe,
+          subscriberCount);
 
-      Long countLong = countMap.getOrDefault(interest.getId(), 0L);
-      int subscriberCount = Math.toIntExact(countLong);
-      interestDtos.add(
-          interestMapper.toInterestDto(interest, keywords, subscribedByMe, subscriberCount));
+      log.info("DBG dto id={}, name={}, subscriberCount={} subscribedByMe={}",
+          dto.id(), dto.name(), dto.subscriberCount(), dto.subscribedByMe());
+      interestDtos.add(dto);
     }
 
-    boolean hasNext = slices.hasNext();
-    String nextCursor = calculateNextCursor(interests, countMap, orderBy, hasNext);
-    LocalDateTime nextAfter = calculateNextAfter(interests);
     long totalElements = interestRepository.countFilteredTotalElements(keyword);
+    boolean hasNext = slices.hasNext();
 
-    return new CursorPageResponseInterestDto(
-        interestDtos, nextCursor, nextAfter, limit, totalElements, hasNext);
+    String nextCursor = null;
+    LocalDateTime nextAfter = null;
+    if (hasNext) {
+      Interest last = interests.get(interests.size() - 1);
+
+      if (request.orderBy() == InterestOrderBy.name) {
+        nextCursor = last.getName();
+      } else if (request.orderBy() == InterestOrderBy.subscriberCount) {
+        nextCursor = String.valueOf(last.getId());
+      }
+      nextAfter = last.getCreatedAt();
+    }
+
+    return new CursorPageResponseInterestDto(interestDtos, nextCursor, nextAfter,
+        slices.getSize(), totalElements, hasNext);
   }
 
   @Override
@@ -173,7 +177,7 @@ public class InterestServiceImpl implements InterestService {
   @Transactional
   public void deleteInterest(Long interestId) {
     Interest interest = interestRepository.findById(interestId)
-            .orElseThrow(InterestNotFoundException::new);
+        .orElseThrow(InterestNotFoundException::new);
 
     List<Long> articleIds = interestArticlesRepository.findArticleIdsByInterestId(interestId);
     log.info("관심사({})와 연결된 기사 수: {}", interest.getName(), articleIds.size());
@@ -184,11 +188,11 @@ public class InterestServiceImpl implements InterestService {
     }
 
     List<Long> usedElsewhere =
-            interestArticlesRepository.findArticleIdsUsedByOtherInterests(articleIds, interestId);
+        interestArticlesRepository.findArticleIdsUsedByOtherInterests(articleIds, interestId);
 
     List<Long> toDelete = articleIds.stream()
-            .filter(id -> !usedElsewhere.contains(id))
-            .toList();
+        .filter(id -> !usedElsewhere.contains(id))
+        .toList();
 
     int deletedCount = toDelete.size();
     int undeletedCount = usedElsewhere.size();
@@ -229,31 +233,6 @@ public class InterestServiceImpl implements InterestService {
   }
 
 
-  private String calculateNextCursor(
-      List<Interest> interests,
-      Map<Long, Long> countMap,
-      InterestOrderBy orderBy,
-      boolean hasNext
-  ) {
-    if (!hasNext || interests.isEmpty()) return null;
-
-    Interest last = interests.get(interests.size() - 1);
-
-    return switch (orderBy) {
-      case name -> last.getName();
-      case subscriberCount -> String.valueOf(last.getId());
-    };
-  }
-
-
-  private LocalDateTime calculateNextAfter(List<Interest> interests) {
-    if (!interests.isEmpty()) {
-      return interests.get(interests.size() - 1).getCreatedAt();
-    }
-    return null;
-  }
-
-
   private void updateKeywords(
       Interest interest, @Size(min = 1, max = 10) List<String> requestKeywords) {
 
@@ -284,29 +263,31 @@ public class InterestServiceImpl implements InterestService {
 
 
   private void removeOrphanKeywords(Interest interest, Map<String, InterestKeyword> toRemove) {
-    if (toRemove.isEmpty()) return;
+    if (toRemove.isEmpty()) {
+      return;
+    }
 
     List<Keyword> removedKeywords = toRemove.values().stream()
-            .map(InterestKeyword::getKeyword)
-            .toList();
+        .map(InterestKeyword::getKeyword)
+        .toList();
 
     interest.getKeywords().removeAll(toRemove.values());
 
     List<Long> removedKeywordIds = removedKeywords.stream()
-            .map(Keyword::getId)
-            .toList();
+        .map(Keyword::getId)
+        .toList();
 
     List<Long> relatedArticleIds =
-            interestArticleKeywordRepository.findArticleIdsByKeywordIds(removedKeywordIds);
+        interestArticleKeywordRepository.findArticleIdsByKeywordIds(removedKeywordIds);
     log.info("고아 키워드 관련 기사 수: {}", relatedArticleIds.size());
 
     if (!relatedArticleIds.isEmpty()) {
       List<Long> usedElsewhere = interestArticleKeywordRepository.findArticlesUsedElsewhere(
-              relatedArticleIds, removedKeywordIds, interest.getId());
+          relatedArticleIds, removedKeywordIds, interest.getId());
 
       List<Long> toDelete = relatedArticleIds.stream()
-              .filter(id -> !usedElsewhere.contains(id))
-              .toList();
+          .filter(id -> !usedElsewhere.contains(id))
+          .toList();
 
       if (!toDelete.isEmpty()) {
         articleRepository.markAsDeleted(toDelete);

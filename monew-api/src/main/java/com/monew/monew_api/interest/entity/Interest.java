@@ -51,6 +51,7 @@ public class Interest extends BaseTimeEntity {
   }
 
   public void cancelSubscriberCount(){
+    if(this.subscriberCount > 0){}
     this.subscriberCount--;
   }
 }
