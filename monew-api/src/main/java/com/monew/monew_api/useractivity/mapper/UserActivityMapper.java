@@ -62,6 +62,7 @@ public interface UserActivityMapper {
     @Mapping(target = "commentId", expression = "java(String.valueOf(commentLike.getComment().getId()))")
     @Mapping(target = "articleId", expression = "java(String.valueOf(commentLike.getComment().getArticle().getId()))")
     @Mapping(target = "articleTitle", source = "comment.article.title")
+    @Mapping(target = "commentUserId", source = "comment.user.id")
     @Mapping(target = "commentUserNickname", source = "comment.user.nickname")
     @Mapping(target = "commentContent", source = "comment.content")
     @Mapping(target = "commentLikeCount", source = "comment.likeCount")
