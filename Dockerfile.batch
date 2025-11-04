@@ -63,6 +63,9 @@ RUN apk add --no-cache tzdata && \
 # 빌드 스테이지에서 JAR 파일 복사
 COPY --from=builder /app/build/app.jar app.jar
 
+# 로그 디렉토리 생성 및 권한 설정
+RUN mkdir -p /app/.logs && chown -R spring:spring /app/.logs
+
 # 소유권 변경
 RUN chown spring:spring app.jar
 
