@@ -1,10 +1,11 @@
-package com.monew.monew_api.useractivity.repository;
+package com.monew.monew_api.useractivity.repository.Impl;
 
 import com.monew.monew_api.comments.entity.Comment;
 import com.monew.monew_api.comments.entity.CommentLike;
 import com.monew.monew_api.interest.entity.QKeyword;
 import com.monew.monew_api.subscribe.entity.Subscribe;
 import com.monew.monew_api.useractivity.dto.ArticleViewActivityDto;
+import com.monew.monew_api.useractivity.repository.UserActivityRepository;
 import com.monew.monew_api.useractivity.repository.projection.UserActivityRaw;
 
 import com.querydsl.core.types.Projections;

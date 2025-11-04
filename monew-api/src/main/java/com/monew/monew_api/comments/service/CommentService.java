@@ -5,8 +5,7 @@ import com.monew.monew_api.article.repository.ArticleRepository;
 import com.monew.monew_api.comments.dto.*;
 import com.monew.monew_api.comments.entity.Comment;
 import com.monew.monew_api.comments.entity.CommentLike;
-import com.monew.monew_api.comments.event.CommentCreatedEvent;
-import com.monew.monew_api.comments.event.CommentLikedEvent;
+import com.monew.monew_api.comments.event.*;
 import com.monew.monew_api.comments.repository.CommentLikeRepository;
 import com.monew.monew_api.comments.repository.CommentRepository;
 import com.monew.monew_api.common.exception.comment.*;
@@ -14,7 +13,6 @@ import com.monew.monew_api.user.User;
 import com.monew.monew_api.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,24 +32,32 @@ public class CommentService {
 	// 댓글 작성
 	@Transactional
 	public CommentDto register(CommentRegisterRequest request) {
-		log.info("[COMMENT][CREATE][START] userId={}, articleId={}", request.userId(), request.articleId());
-		User user = getUserById(request.userId());
-		Article article = getArticleById(request.articleId());
+        log.info("[COMMENT][CREATE][START] userId={}, articleId={}", request.userId(), request.articleId());
+        User user = getUserById(request.userId());
+        Article article = getArticleById(request.articleId());
 
 		log.info("[COMMENT_COUNT] 댓글 작성 전 카운트: {}", article.getCommentCount());
 		Comment saved = commentRepository.save(Comment.of(user, article, request.content()));
 		log.info("[COMMENT][CREATE] userId={}, articleId={}, commentId={}",
 			user.getId(), article.getId(), saved.getId());
 
-		eventPublisher.publishEvent(
-			new CommentCreatedEvent(saved.getId(), user.getId(), article.getId(), saved.getCreatedAt())
-		);
-
 		article.increaseCommentCount();
 		articleRepository.save(article);
 
-		log.info("[COMMENT_COUNT] 댓글 작성 후 카운트: {}", article.getCommentCount());
-		return CommentDto.from(saved, false);
+        eventPublisher.publishEvent(
+                CommentCreatedEvent.of(
+                        saved.getId(),
+                        saved.getArticleId(),
+                        article.getTitle(),
+                        saved.getUserId(),
+                        user.getNickname(),
+                        saved.getContent(),
+                        saved.getLikeCount(),
+                        saved.getCreatedAt())
+        );
+
+        log.info("[COMMENT_COUNT] 댓글 작성 후 카운트: {}", article.getCommentCount());
+        return CommentDto.from(saved, false);
 	}
 
 	// 댓글 수정
@@ -66,6 +72,9 @@ public class CommentService {
 			userId, commentId, request.content().length());
 
 		boolean likedByMe = commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId);
+
+        eventPublisher.publishEvent(CommentContentEditedEvent.of(commentId, request.content()));
+
 		return CommentDto.from(comment, likedByMe);
 	}
 
@@ -77,11 +86,23 @@ public class CommentService {
 		Comment comment = getCommentById(commentId);
 		log.info("[COMMENT][LIKE] 엔티티 조회 완료 - user={}, comment={}", user.getId(), comment.getId());
 		CommentLike saved = commentLikeRepository.save(CommentLike.of(user, comment));
-		comment.increaseLike();
 
 		eventPublisher.publishEvent(
-			new CommentLikedEvent(comment.getId(), comment.getUserId(), user.getNickname()));
+			CommentLikedEvent.of(
+                    saved.getId(),
+                    saved.getCreatedAt(),
+                    commentId,
+                    comment.getArticle().getId(),
+                    comment.getArticle().getTitle(),
+                    comment.getUserId(),
+                    comment.getUser().getNickname(),
+                    comment.getContent(),
+                    comment.getLikeCount(),
+                    comment.getCreatedAt(),
+                    user.getId(),
+                    user.getNickname()));
 
+        comment.increaseLike();
 		log.info("[COMMENT][LIKE] userId={}, commentId={}", userId, commentId);
 		return CommentLikeDto.from(saved);
 	}
@@ -97,6 +118,8 @@ public class CommentService {
 		commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId);
 		commentRepository.decLikeCount(commentId);
 
+        eventPublisher.publishEvent(CommentUnlikedEvent.of(commentId, userId));
+
 		log.info("[COMMENT][DISLIKE] userId={}, commentId={}", userId, commentId);
 	}
 
@@ -111,11 +134,12 @@ public class CommentService {
 
 		commentRepository.delete(comment);
 
-		article.decreaseCommentCount();
-		articleRepository.save(article);
-		log.info("[COMMENT_COUNT] 댓글 삭제 후 카운트: {}", article.getCommentCount());
-		log.info("[COMMENT][DELETE] commentId={}", commentId);
-	}
+        article.decreaseCommentCount();
+        articleRepository.save(article);
+        eventPublisher.publishEvent(CommentDeletedEvent.of(commentId));
+        log.info("[COMMENT_COUNT] 댓글 삭제 후 카운트: {}", article.getCommentCount());
+        log.info("[COMMENT][DELETE] commentId={}", commentId);
+    }
 
 	// 댓글 물리 삭제
 	@Transactional

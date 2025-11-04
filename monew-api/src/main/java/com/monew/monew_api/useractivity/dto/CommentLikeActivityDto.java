@@ -35,7 +35,7 @@ public class CommentLikeActivityDto {
     @JsonAlias({"article_title"})
     private String articleTitle;
 
-    @JsonProperty("commentUserId")
+    @JsonProperty("commentAuthorId")
     @JsonAlias({"comment_user_id"})
     private String commentUserId;
 

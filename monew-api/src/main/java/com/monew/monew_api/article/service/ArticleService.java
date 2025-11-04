@@ -9,8 +9,10 @@ import com.monew.monew_api.article.entity.ArticleView;
 import com.monew.monew_api.article.repository.ArticleRepository;
 import com.monew.monew_api.article.repository.ArticleViewRepository;
 import com.monew.monew_api.common.exception.article.ArticleNotFoundException;
+import com.monew.monew_api.article.event.ArticleViewedEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ public class ArticleService {
 
     private final ArticleRepository articleRepository;
     private final ArticleViewRepository articleViewRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 기사 조회 기록 등록
@@ -63,6 +66,19 @@ public class ArticleService {
         ArticleView articleView = new ArticleView(userId, articleId);
         ArticleView saved = articleViewRepository.save(articleView);
         article.increaseViewCount();
+        eventPublisher.publishEvent(
+                ArticleViewedEvent.of(
+                        saved.getId(),
+                        saved.getUserId(),
+                        saved.getCreatedAt(),
+                        saved.getArticleId(),
+                        article.getSource(),
+                        article.getSourceUrl(),
+                        article.getTitle(),
+                        article.getPublishDate(),
+                        article.getSummary(),
+                        article.getCommentCount(),
+                        article.getViewCount()));
         log.info("[조회 기록 성공] 기사 ID: {}, 사용자 ID: {}", articleId, userId);
 
         return ArticleViewDto.builder()

@@ -62,7 +62,6 @@ public interface UserActivityMapper {
     @Mapping(target = "commentId", expression = "java(String.valueOf(commentLike.getComment().getId()))")
     @Mapping(target = "articleId", expression = "java(String.valueOf(commentLike.getComment().getArticle().getId()))")
     @Mapping(target = "articleTitle", source = "comment.article.title")
-    @Mapping(target = "commentUserId", expression = "java(String.valueOf(commentLike.getComment().getUser().getId()))")
     @Mapping(target = "commentUserNickname", source = "comment.user.nickname")
     @Mapping(target = "commentContent", source = "comment.content")
     @Mapping(target = "commentLikeCount", source = "comment.likeCount")
@@ -70,9 +69,6 @@ public interface UserActivityMapper {
     CommentLikeActivityDto toCommentLikeDto(CommentLike commentLike);
 
     List<CommentLikeActivityDto> toCommentLikeDtos(List<CommentLike> commentLikes);
-
-    @Mapping(target = "cachedAt", expression = "java(java.time.LocalDateTime.now())")
-    UserActivityCacheDocument toDocument(UserActivityDto dto);
 
     UserActivityDto toDto(UserActivityCacheDocument document);
 
