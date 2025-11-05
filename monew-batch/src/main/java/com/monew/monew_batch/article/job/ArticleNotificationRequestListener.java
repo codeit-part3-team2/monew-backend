@@ -3,7 +3,6 @@ package com.monew.monew_batch.article.job;
 import com.monew.monew_batch.notification.service.NotificationAsyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionListener;
 import org.springframework.stereotype.Component;
@@ -19,10 +18,6 @@ public class ArticleNotificationRequestListener implements JobExecutionListener 
 
     @Override
     public void afterJob(JobExecution jobExecution) {
-        if (jobExecution.getStatus() != BatchStatus.COMPLETED) {
-            return;
-        }
-
         @SuppressWarnings("unchecked")
         Map<Long, Integer> stats =
                 (Map<Long, Integer>) jobExecution.getExecutionContext().get("newLinkCountsByInterestId");
