@@ -18,7 +18,7 @@ public class UserActivityPerfController {
     private final UserActivityCacheService cacheService;
     private final UserActivityService userActivityService;
 
-    @GetMapping("/test/user-activity/{userId}")
+    @GetMapping("/api/test/user-activity/{userId}")
     public UserActivityDto testUserActivity(@PathVariable String userId,
                                             @RequestParam(defaultValue = "cache") String mode) {
         // mode 값: cache | single | multi
