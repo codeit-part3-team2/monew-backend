@@ -154,28 +154,15 @@ jobs:
           PORT="${{ matrix.service.port }}"
           TASK_DEF="${{ env.NEW_TASK_ARN }}"
 
-          # Network JSON (public subnets + SGs[], public IP)
-          IFS=',' read -r -a SUBNETS <<< "${{ env.PUBLIC_SUBNETS_CSV }}"
-          SUBNET_JSON=$(printf '"%s",' "${SUBNETS[@]}")
-          SUBNET_JSON="[${SUBNET_JSON%,}]"
+          # --- Network (CLI shorthand: 배열 안전 전달) ---
+          IFS=',' read -r -a SUBNETS_ARR <<< "${{ env.PUBLIC_SUBNETS_CSV }}"
+          SUBNETS_SH=$(printf '%s,' "${SUBNETS_ARR[@]}"); SUBNETS_SH="[${SUBNETS_SH%,}]"
 
-          SGS_STR="${{ env.ECS_SERVICE_SG }}"  # 예: "sg-aaaa,sg-bbbb"
-          SG_JSON=$(jq -nc --arg s "$SGS_STR" '$s | split(",")')
+          IFS=',' read -r -a SGS_ARR <<< "${{ env.ECS_SERVICE_SG }}"
+          SGS_SH=$(printf '%s,' "${SGS_ARR[@]}"); SGS_SH="[${SGS_SH%,}]"
 
-          NET_JSON=$(jq -nc \
-          --argjson subnets "$SUBNET_JSON" \
-          --argjson sgs "$SG_JSON" \
-          '{
-              awsvpcConfiguration: {
-                subnets: $subnets,
-                securityGroups: $sgs,
-                assignPublicIp: "ENABLED"
-              }
-            }')
-
-          echo "Network: $NET_JSON"
-
-          
+          NET_SH="awsvpcConfiguration={subnets=${SUBNETS_SH},securityGroups=${SGS_SH},assignPublicIp=ENABLED}"
+          echo "Network(shorthand): $NET_SH"
 
           LB_JSON=$(jq -nc \
             --arg tg "$TG_ARN" --arg cn "$CONTAINER" --argjson cp "$PORT" \
@@ -186,6 +173,13 @@ jobs:
           SVC_LEN=$(echo "$DESC"  | jq -r '.services | length // 0')
           STATUS=$(echo "$DESC"   | jq -r '.services[0].status // empty')
 
+          # 배포 정책: Prometheus만 겹침 금지(0/100), 나머지는 기본(100/200)
+          if [ "$SERVICE" = "monew-prometheus-service" ]; then
+            DEPLOY_CONF='maximumPercent=100,minimumHealthyPercent=0'
+          else
+            DEPLOY_CONF='maximumPercent=200,minimumHealthyPercent=100'
+          fi
+
           if [ "$FAIL_LEN" != "0" ] || [ "$SVC_LEN" = "0" ]; then
             echo "🟢 Service not found → create-service"
             aws ecs create-service \
@@ -195,10 +189,10 @@ jobs:
               --desired-count 1 \
               --launch-type FARGATE \
               --platform-version LATEST \
-              --deployment-configuration "maximumPercent=200,minimumHealthyPercent=100" \
+              --deployment-configuration "$DEPLOY_CONF" \
               --deployment-controller "type=ECS" \
               --enable-execute-command \
-              --network-configuration "$NET_JSON" \
+              --network-configuration "$NET_SH" \
               --load-balancers "$LB_JSON" \
               --region "$REGION"
           else
@@ -220,21 +214,51 @@ jobs:
                 --desired-count 1 \
                 --launch-type FARGATE \
                 --platform-version LATEST \
-                --deployment-configuration "maximumPercent=200,minimumHealthyPercent=100" \
+                --deployment-configuration "$DEPLOY_CONF" \
                 --deployment-controller "type=ECS" \
                 --enable-execute-command \
-                --network-configuration "$NET_JSON" \
+                --network-configuration "$NET_SH" \
                 --load-balancers "$LB_JSON" \
                 --region "$REGION"
             else
-              echo "🔵 Service ACTIVE → update-service"
-              aws ecs update-service \
-                --cluster "$CLUSTER" \
-                --service "$SERVICE" \
-                --task-definition "$TASK_DEF" \
-                --desired-count 1 \
-                --force-new-deployment \
-                --region "$REGION"
+              echo "🔵 Service ACTIVE"
+              if [ "$SERVICE" = "monew-prometheus-service" ]; then
+                echo "🧯 Prometheus: scale down to 0 first (avoid TSDB lock)"
+                aws ecs update-service \
+                  --cluster "$CLUSTER" \
+                  --service "$SERVICE" \
+                  --desired-count 0 \
+                  --region "$REGION"
+
+                # 모든 태스크 정지 대기
+                for i in {1..60}; do
+                  TASKS=$(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE" --region "$REGION" --query 'taskArns' --output json)
+                  if [ "$TASKS" = "[]" ]; then
+                    echo "All prometheus tasks stopped."
+                    break
+                  fi
+                  echo "Waiting prometheus tasks to stop..."
+                  sleep 5
+                done
+
+                echo "🔁 Update task def & scale up to 1"
+                aws ecs update-service \
+                  --cluster "$CLUSTER" \
+                  --service "$SERVICE" \
+                  --task-definition "$TASK_DEF" \
+                  --desired-count 1 \
+                  --force-new-deployment \
+                  --region "$REGION"
+              else
+                echo "🔁 Regular rolling update"
+                aws ecs update-service \
+                  --cluster "$CLUSTER" \
+                  --service "$SERVICE" \
+                  --task-definition "$TASK_DEF" \
+                  --desired-count 1 \
+                  --force-new-deployment \
+                  --region "$REGION"
+              fi
             fi
           fi
 
