@@ -6,12 +6,14 @@ on:
   workflow_dispatch:
 
 env:
-  # ⭐ 리전 분리
   ECS_REGION: ap-northeast-2
   ECR_PUBLIC_REGION: us-east-1
 
   ECS_CLUSTER: monew-cluster-1
   ECR_REPOSITORY: public.ecr.aws/s7e2q2h9/monew
+
+  PUBLIC_SUBNETS_CSV: subnet-00530329356c03add,subnet-008505c5a32cd0093,subnet-08601cd2c0aa46873,subnet-03f28f954846ad79d
+  ECS_SERVICE_SG: sg-0fbe8feeddc4e8195,sg-08a99e539bed73ed3
 
 jobs:
   build-and-deploy:
@@ -24,26 +26,41 @@ jobs:
             tag: monew-api
             task_definition: monew-api-task
             ecs_service: monew-api-service
+            container: monew-api-app
+            port: 8080
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-api-target/188870153e8974df
           - name: batch
             dockerfile: Dockerfile.batch
             tag: monew-batch
             task_definition: monew-batch-task
             ecs_service: monew-batch-service
+            container: monew-batch-app
+            port: 8081
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-batch-target/8c8fd5dc5924e8f6
           - name: monitor
             dockerfile: Dockerfile.monitor
             tag: monew-monitor
             task_definition: monew-monitor-task
             ecs_service: monew-monitor-service
+            container: monew-monitor-app
+            port: 8082
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-monitor-target/f2041a48b08d9ef9
           - name: prometheus
             dockerfile: Dockerfile.prom
             tag: prometheus
             task_definition: monew-prometheus-task
             ecs_service: monew-prometheus-service
+            container: monew-prometheus-app
+            port: 9090
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-prometheus-target/01ce4f2072a65a1f
           - name: grafana
             dockerfile: Dockerfile.grafana
             tag: grafana
             task_definition: monew-grafana-task
             ecs_service: monew-grafana-service
+            container: monew-grafana-app
+            port: 3000
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-grafana-target/aece83e522ce15b5
 
     steps:
       - name: Checkout code
@@ -94,45 +111,121 @@ jobs:
             --region ${{ env.ECS_REGION }} \
             --query 'taskDefinition.taskDefinitionArn' --output text
 
-      - name: Update task definition
+      - name: Update task definition (swap image)
         run: |
           set -euo pipefail
-          TASK_DEFINITION=$(aws ecs describe-task-definition \
-            --task-definition ${{ matrix.service.task_definition }} \
-            --region ${{ env.ECS_REGION }} \
+          FAMILY="${{ matrix.service.task_definition }}"
+          REGION="${{ env.ECS_REGION }}"
+          CNAME="${{ matrix.service.container }}"
+          IMAGE="${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest"
+
+          TD=$(aws ecs describe-task-definition \
+            --task-definition "$FAMILY" \
+            --region "$REGION" \
             --query 'taskDefinition' --output json)
 
-          NEW_TASK_DEFINITION=$(echo "$TASK_DEFINITION" | jq \
-            --arg IMAGE "${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest" \
-            --arg NAME "${{ matrix.service.name }}" '
+          echo "== Before =="; echo "$TD" | jq '.containerDefinitions[] | {name,image}'
+
+          NEW_TD=$(echo "$TD" | jq \
+            --arg IMAGE "$IMAGE" --arg CNAME "$CNAME" '
             .containerDefinitions |=
-            ( map( if .name == $NAME then (.image = $IMAGE) else . end ) )
+            ( map( if .name == $CNAME then (.image = $IMAGE) else . end ) )
             | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
-            .compatibilities, .registeredAt, .registeredBy)')
+                  .compatibilities, .registeredAt, .registeredBy)')
+
+          echo "== After (preview) =="; echo "$NEW_TD" | jq '.containerDefinitions[] | {name,image}'
 
           NEW_TASK_ARN=$(aws ecs register-task-definition \
-            --cli-input-json "$NEW_TASK_DEFINITION" \
-            --region ${{ env.ECS_REGION }} \
+            --cli-input-json "$NEW_TD" \
+            --region "$REGION" \
             --query 'taskDefinition.taskDefinitionArn' --output text)
 
           echo "NEW_TASK_ARN=$NEW_TASK_ARN" >> $GITHUB_ENV
+          echo "Registered: $NEW_TASK_ARN"
 
-      - name: Update ECS service
+      - name: Create or Update ECS service (auto)
         run: |
           set -euo pipefail
-          aws ecs update-service \
-            --cluster ${{ env.ECS_CLUSTER }} \
-            --service ${{ matrix.service.ecs_service }} \
-            --task-definition ${{ env.NEW_TASK_ARN }} \
-            --desired-count 1 \
-            --force-new-deployment \
-            --region ${{ env.ECS_REGION }}
-          echo "✅ ${{ matrix.service.name }} service deployed!"
+          CLUSTER="${{ env.ECS_CLUSTER }}"
+          SERVICE="${{ matrix.service.ecs_service }}"
+          REGION="${{ env.ECS_REGION }}"
+          TG_ARN="${{ matrix.service.target_group_arn }}"
+          CONTAINER="${{ matrix.service.container }}"
+          PORT="${{ matrix.service.port }}"
+          TASK_DEF="${{ env.NEW_TASK_ARN }}"
+
+          # Network JSON (public subnets + monew-ecs-sg, public IP)
+          IFS=',' read -r -a SUBNETS <<< "${{ env.PUBLIC_SUBNETS_CSV }}"
+          SUBNET_JSON=$(printf '"%s",' "${SUBNETS[@]}"); SUBNET_JSON="[${SUBNET_JSON%,}]"
+          NET_JSON=$(jq -nc \
+            --argjson subnets "$SUBNET_JSON" \
+            --arg sg "${{ env.ECS_SERVICE_SG }}" \
+            '{awsvpcConfiguration:{subnets: $subnets, securityGroups: [$sg], assignPublicIp: "ENABLED"}}')
+
+          LB_JSON=$(jq -nc \
+            --arg tg "$TG_ARN" --arg cn "$CONTAINER" --argjson cp "$PORT" \
+            '[{targetGroupArn:$tg, containerName:$cn, containerPort:$cp}]')
+
+          DESC=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --region "$REGION" --output json || true)
+          FAIL_LEN=$(echo "$DESC" | jq -r '.failures | length // 0')
+          SVC_LEN=$(echo "$DESC"  | jq -r '.services | length // 0')
+          STATUS=$(echo "$DESC"   | jq -r '.services[0].status // empty')
+
+          if [ "$FAIL_LEN" != "0" ] || [ "$SVC_LEN" = "0" ]; then
+            echo "🟢 Service not found → create-service"
+            aws ecs create-service \
+              --cluster "$CLUSTER" \
+              --service-name "$SERVICE" \
+              --task-definition "$TASK_DEF" \
+              --desired-count 1 \
+              --launch-type FARGATE \
+              --platform-version LATEST \
+              --deployment-configuration "maximumPercent=200,minimumHealthyPercent=100" \
+              --deployment-controller "type=ECS" \
+              --enable-execute-command \
+              --network-configuration "$NET_JSON" \
+              --load-balancers "$LB_JSON" \
+              --region "$REGION"
+          else
+            if [ "$STATUS" != "ACTIVE" ]; then
+              echo "🟠 Service exists but status=$STATUS → delete & recreate"
+              aws ecs delete-service --cluster "$CLUSTER" --service "$SERVICE" --force --region "$REGION" || true
+              for i in {1..30}; do
+                sleep 10
+                D=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --region "$REGION" --output json || true)
+                FL=$(echo "$D" | jq -r '.failures | length // 0')
+                SL=$(echo "$D" | jq -r '.services | length // 0')
+                [ "$FL" != "0" ] || [ "$SL" = "0" ] && break
+                echo "Waiting deletion..."
+              done
+              aws ecs create-service \
+                --cluster "$CLUSTER" \
+                --service-name "$SERVICE" \
+                --task-definition "$TASK_DEF" \
+                --desired-count 1 \
+                --launch-type FARGATE \
+                --platform-version LATEST \
+                --deployment-configuration "maximumPercent=200,minimumHealthyPercent=100" \
+                --deployment-controller "type=ECS" \
+                --enable-execute-command \
+                --network-configuration "$NET_JSON" \
+                --load-balancers "$LB_JSON" \
+                --region "$REGION"
+            else
+              echo "🔵 Service ACTIVE → update-service"
+              aws ecs update-service \
+                --cluster "$CLUSTER" \
+                --service "$SERVICE" \
+                --task-definition "$TASK_DEF" \
+                --desired-count 1 \
+                --force-new-deployment \
+                --region "$REGION"
+            fi
+          fi
 
       - name: Wait for service stability
         run: |
           set -euo pipefail
-          echo "Waiting for service to be stable..."
           aws ecs wait services-stable \
             --cluster ${{ env.ECS_CLUSTER }} \
             --services ${{ matrix.service.ecs_service }} \
