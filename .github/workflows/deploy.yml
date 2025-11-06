@@ -2,12 +2,14 @@ name: CD - Deploy to ECS
 
 on:
   push:
-    branches:
-      - release
+    branches: [ release ]
   workflow_dispatch:
 
 env:
-  AWS_REGION: ap-northeast-2
+  # ⭐ 리전 분리
+  ECS_REGION: ap-northeast-2
+  ECR_PUBLIC_REGION: us-east-1
+
   ECS_CLUSTER: monew-cluster-1
   ECR_REPOSITORY: public.ecr.aws/s7e2q2h9/monew
 
@@ -44,103 +46,92 @@ jobs:
             ecs_service: monew-grafana-service
 
     steps:
-      # ========================================
-      # 1. 코드 체크아웃
-      # ========================================
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # ========================================
-      # 2. Public ECR 로그인 (us-east-1)
-      # ⚠️ 중요: Public ECR은 us-east-1만 사용!
-      # ========================================
+      # ===== Public ECR (us-east-1) =====
       - name: Configure AWS credentials for Public ECR
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: us-east-1  # ⭐ Public ECR은 us-east-1만 사용
+          aws-region: ${{ env.ECR_PUBLIC_REGION }}
 
-      - name: Debug AWS caller identity
-        run: aws sts get-caller-identity --region ${{ env.AWS_REGION }}
+      - name: Debug AWS caller identity (ECR creds)
+        run: aws sts get-caller-identity --region ${{ env.ECR_PUBLIC_REGION }}
 
       - name: Login to Public ECR
         run: |
-          aws ecr-public get-login-password --region us-east-1 | \
+          aws ecr-public get-login-password --region ${{ env.ECR_PUBLIC_REGION }} | \
           docker login --username AWS --password-stdin public.ecr.aws
 
-      # ========================================
-      # 3. Docker 이미지 빌드 & 푸시
-      # ========================================
       - name: Build and push ${{ matrix.service.name }} image
         run: |
-          # 빌드
-          docker build \
-            -f ${{ matrix.service.dockerfile }} \
+          set -euo pipefail
+          docker build -f ${{ matrix.service.dockerfile }} \
             -t ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-${{ github.sha }} \
-            -t ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest \
-            .
-          
-          # 푸시
+            -t ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest .
           docker push ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-${{ github.sha }}
           docker push ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest
 
-      # ========================================
-      # 4. ECS 배포 (ap-northeast-2)
-      # ⚠️ ECS는 실제 리전 사용
-      # ========================================
+      # ===== ECS (ap-northeast-2) =====
       - name: Configure AWS credentials for ECS
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
-          aws-region: ${{ env.AWS_REGION }}  # ⭐ ECS는 ap-northeast-2
+          aws-region: ${{ env.ECS_REGION }}
+
       - name: Debug AWS caller identity (ECS creds)
-        run: aws sts get-caller-identity --region ${{ env.AWS_REGION }}
+        run: aws sts get-caller-identity --region ${{ env.ECS_REGION }}
 
       - name: Dry-run DescribeTaskDefinition (debug)
         run: |
+          set -euo pipefail
+          echo "Family: ${{ matrix.service.task_definition }}  Region: ${{ env.ECS_REGION }}"
           aws ecs describe-task-definition \
             --task-definition ${{ matrix.service.task_definition }} \
-            --region ${{ env.AWS_REGION }} \
-            --query 'taskDefinition.taskDefinitionArn' --output text      
+            --region ${{ env.ECS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' --output text
 
       - name: Update task definition
         run: |
-          # 현재 태스크 정의 가져오기
+          set -euo pipefail
           TASK_DEFINITION=$(aws ecs describe-task-definition \
             --task-definition ${{ matrix.service.task_definition }} \
-            --query 'taskDefinition')
+            --region ${{ env.ECS_REGION }} \
+            --query 'taskDefinition' --output json)
 
-          # 새 이미지로 업데이트
-          NEW_TASK_DEFINITION=$(echo $TASK_DEFINITION | jq \
+          NEW_TASK_DEFINITION=$(echo "$TASK_DEFINITION" | jq \
             --arg IMAGE "${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest" \
-            '.containerDefinitions[0].image = $IMAGE | 
-             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+            '.containerDefinitions[0].image = $IMAGE
+             | del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
 
-          # 새 태스크 정의 등록
           NEW_TASK_ARN=$(aws ecs register-task-definition \
-            --cli-input-json "$NEW_TASK_DEFINITION" | \
-            jq -r '.taskDefinition.taskDefinitionArn')
+            --cli-input-json "$NEW_TASK_DEFINITION" \
+            --region ${{ env.ECS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
 
           echo "NEW_TASK_ARN=$NEW_TASK_ARN" >> $GITHUB_ENV
 
       - name: Update ECS service
         run: |
+          set -euo pipefail
           aws ecs update-service \
             --cluster ${{ env.ECS_CLUSTER }} \
             --service ${{ matrix.service.ecs_service }} \
             --task-definition ${{ env.NEW_TASK_ARN }} \
             --desired-count 1 \
-            --force-new-deployment
-
+            --force-new-deployment \
+            --region ${{ env.ECS_REGION }}
           echo "✅ ${{ matrix.service.name }} service deployed!"
 
       - name: Wait for service stability
         run: |
+          set -euo pipefail
           echo "Waiting for service to be stable..."
           aws ecs wait services-stable \
             --cluster ${{ env.ECS_CLUSTER }} \
-            --services ${{ matrix.service.ecs_service }}
-          
+            --services ${{ matrix.service.ecs_service }} \
+            --region ${{ env.ECS_REGION }}
           echo "🚀 ${{ matrix.service.name }} deployment completed!"
