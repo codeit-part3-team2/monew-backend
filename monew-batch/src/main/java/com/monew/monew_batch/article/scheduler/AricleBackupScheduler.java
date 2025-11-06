@@ -1,6 +1,6 @@
 package com.monew.monew_batch.article.scheduler;
 
-import com.monew.monew_batch.article.service.NewsBackupService;
+import com.monew.monew_batch.article.service.AricleBackupService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -15,15 +15,15 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 @ConditionalOnProperty(value = "app.scheduling.enabled", havingValue = "true", matchIfMissing = true)
-public class NewsBackupScheduler {
+public class AricleBackupScheduler {
 
-    private final NewsBackupService newsBackupService;
+    private final AricleBackupService aricleBackupService;
 
-    @Scheduled(cron = "0 20 4 * * *", zone = "Asia/Seoul")
-//    @Scheduled(fixedRate = 60000) // 테스트용
+//    @Scheduled(cron = "0 20 4 * * *", zone = "Asia/Seoul")
+    @Scheduled(fixedRate = 600000) // 테스트용
     public void backupNews() {
         log.info("🗄 뉴스 백업 시작");
-        newsBackupService.backupAllArticles();
+        aricleBackupService.backupAllArticles();
         log.info("🗃 뉴스 백업 완료");
     }
 }

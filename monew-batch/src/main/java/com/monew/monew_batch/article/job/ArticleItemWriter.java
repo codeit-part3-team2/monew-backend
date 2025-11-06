@@ -10,7 +10,7 @@ import com.monew.monew_api.interest.entity.Interest;
 import com.monew.monew_api.interest.entity.Keyword;
 import com.monew.monew_api.interest.repository.InterestRepository;
 import com.monew.monew_batch.article.dto.ArticleKeywordPair;
-import com.monew.monew_batch.article.matric.NewsBatchMetrics;
+import com.monew.monew_batch.article.matric.ArticleBatchMetrics;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.ExitStatus;
@@ -29,14 +29,14 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 @StepScope
 @RequiredArgsConstructor
-public class NaverNewsItemWriter implements ItemWriter<List<ArticleKeywordPair>>, StepExecutionListener {
+public class ArticleItemWriter implements ItemWriter<List<ArticleKeywordPair>>, StepExecutionListener {
 
     private final ArticleJdbcRepository articleJdbcRepository;
     private final ArticleRepository articleRepository;
     private final InterestRepository interestRepository;
     private final InterestArticlesRepository interestArticlesRepository;
     private final InterestArticleKeywordRepository interestArticleKeywordRepository;
-    private final NewsBatchMetrics metrics;
+    private final ArticleBatchMetrics metrics;
 
     private final Map<Long, Integer> newLinkCountsByInterestId = new ConcurrentHashMap<>();
 

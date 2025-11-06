@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 @Getter
 @Setter
 @NoArgsConstructor
-public class NewsBackupData {
+public class ArticleBackupData {
 
     private LocalDateTime backupDate;
     private List<ArticleData> articles;

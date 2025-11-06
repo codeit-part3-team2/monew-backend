@@ -1,8 +1,8 @@
 package com.monew.monew_batch.article.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.monew.monew_api.article.dto.NewsBackupData;
-import com.monew.monew_batch.article.matric.NewsBatchMetrics;
+import com.monew.monew_api.article.dto.ArticleBackupData;
+import com.monew.monew_batch.article.matric.ArticleBatchMetrics;
 import com.monew.monew_batch.article.repository.ArticleBackupQueryRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -25,28 +25,28 @@ import java.util.List;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class NewsBackupService {
+public class AricleBackupService {
 
     private final ArticleBackupQueryRepository backupQueryRepository;
     private final ObjectMapper objectMapper;
     private final S3Client s3Client;
-    private final NewsBatchMetrics metrics;
+    private final ArticleBatchMetrics metrics;
 
     @Value("${aws.bucket}")
     private String bucketName;
 
-    private static final String PREFIX = "backup/news_backup_";
+    private static final String PREFIX = "backup/article_backup_";
 
     @Transactional(readOnly = true)
     public void backupAllArticles() {
-        List<NewsBackupData.ArticleData> articles = backupQueryRepository.findAllArticlesForBackup();
+        List<ArticleBackupData.ArticleData> articles = backupQueryRepository.findAllArticlesForBackup();
 
         if (articles.isEmpty()) {
             log.info("백업할 뉴스가 없습니다. (isDeleted = false)");
             return;
         }
 
-        NewsBackupData backupData = new NewsBackupData();
+        ArticleBackupData backupData = new ArticleBackupData();
         backupData.setBackupDate(LocalDateTime.now());
         backupData.setArticles(articles);
 

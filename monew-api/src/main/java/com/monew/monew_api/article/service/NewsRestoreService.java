@@ -1,7 +1,7 @@
 package com.monew.monew_api.article.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.monew.monew_api.article.dto.NewsBackupData;
+import com.monew.monew_api.article.dto.ArticleBackupData;
 import com.monew.monew_api.article.entity.Article;
 import com.monew.monew_api.article.repository.*;
 import com.monew.monew_api.common.entity.BaseIdEntity;
@@ -38,7 +38,7 @@ public class NewsRestoreService {
     @Value("${aws.bucket}")
     private String bucketName;
 
-    private static final String PREFIX = "backup/news_backup_";
+    private static final String PREFIX = "backup/article_backup_";
     private static final DateTimeFormatter FILE_DATE_FORMAT =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH-mm-ss");
 
@@ -54,11 +54,11 @@ public class NewsRestoreService {
             if (fileKeys.isEmpty()) return;
 
             // 2. 여러 백업 파일 병합
-            List<NewsBackupData.ArticleData> mergedArticles = mergeBackupData(fileKeys);
+            List<ArticleBackupData.ArticleData> mergedArticles = mergeBackupData(fileKeys);
             if (mergedArticles.isEmpty()) return;
 
             // 3. 이미 존재하는 기사 제외
-            List<NewsBackupData.ArticleData> newArticles = filterExistingArticles(mergedArticles);
+            List<ArticleBackupData.ArticleData> newArticles = filterExistingArticles(mergedArticles);
             if (newArticles.isEmpty()) return;
 
             log.info("📰 신규 기사 {}건 복원 시도", newArticles.size());
@@ -66,7 +66,7 @@ public class NewsRestoreService {
             // 4. 기사 단위 복원
             int restored = 0, skipped = 0;
 
-            for (NewsBackupData.ArticleData data : newArticles) {
+            for (ArticleBackupData.ArticleData data : newArticles) {
                 boolean success = restoreSingleArticleExact(data);
                 if (success) restored++;
                 else skipped++;
@@ -107,13 +107,13 @@ public class NewsRestoreService {
     }
 
     /** 여러 백업 파일 병합 */
-    private List<NewsBackupData.ArticleData> mergeBackupData(List<String> keys) {
-        Map<String, NewsBackupData.ArticleData> merged = new LinkedHashMap<>();
+    private List<ArticleBackupData.ArticleData> mergeBackupData(List<String> keys) {
+        Map<String, ArticleBackupData.ArticleData> merged = new LinkedHashMap<>();
 
         for (String key : keys) {
             try {
                 String json = s3Client.getObjectAsBytes(b -> b.bucket(bucketName).key(key)).asUtf8String();
-                NewsBackupData backup = objectMapper.readValue(json, NewsBackupData.class);
+                ArticleBackupData backup = objectMapper.readValue(json, ArticleBackupData.class);
                 backup.getArticles().forEach(a -> merged.putIfAbsent(a.getSourceUrl(), a));
             } catch (Exception e) {
                 log.error("⚠️ 백업 파일 로드 실패: {}", key, e);
@@ -125,7 +125,7 @@ public class NewsRestoreService {
     }
 
     /** 이미 존재하는 기사 제외 */
-    private List<NewsBackupData.ArticleData> filterExistingArticles(List<NewsBackupData.ArticleData> articles) {
+    private List<ArticleBackupData.ArticleData> filterExistingArticles(List<ArticleBackupData.ArticleData> articles) {
         Set<String> existingUrls = articleRepository.findAllSourceUrls();
         return articles.stream()
                 .filter(a -> !existingUrls.contains(a.getSourceUrl()))
@@ -133,7 +133,7 @@ public class NewsRestoreService {
     }
 
     /** 기사 복원 (Writer 시점과 동일하되 insertIgnore 적용) */
-    private boolean restoreSingleArticleExact(NewsBackupData.ArticleData data) {
+    private boolean restoreSingleArticleExact(ArticleBackupData.ArticleData data) {
         try {
             boolean inserted = articleJdbcRepository.insertIgnore(data.toEntity());
             if (!inserted) return false;

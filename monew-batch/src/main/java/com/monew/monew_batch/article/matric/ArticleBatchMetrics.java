@@ -10,7 +10,7 @@ import org.springframework.stereotype.Component;
  */
 @Component
 @RequiredArgsConstructor
-public class NewsBatchMetrics {
+public class ArticleBatchMetrics {
 
     private final MeterRegistry meterRegistry;
 
