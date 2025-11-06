@@ -66,4 +66,4 @@ aws:
 
 monew:
   api:
-    url: ${http://monew-api.monew.local:8080}
+    url: ${MONEW_API_URL:http://monew-app-alb-721921608.ap-northeast-2.elb.amazonaws.com/api}
