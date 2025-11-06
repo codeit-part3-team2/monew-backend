@@ -55,5 +55,6 @@ subprojects {
         testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
         implementation 'io.micrometer:micrometer-core'
         implementation 'org.springframework.boot:spring-boot-starter-actuator'
+        runtimeOnly "io.micrometer:micrometer-registry-prometheus"
     }
 }

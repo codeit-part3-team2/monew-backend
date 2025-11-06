@@ -18,30 +18,10 @@
 #    static_configs:
 #      - targets: ['host.docker.internal:8082']
 
-# 배포
-#scrape_configs:
-#  - job_name: 'monew-api'
-#    metrics_path: '/api/actuator/prometheus'
-#    static_configs:
-#      - targets: ['monew-app-alb-721921608.ap-northeast-2.elb.amazonaws.com']
-#    scheme: http
-#
-#  - job_name: 'monew-batch'
-#    metrics_path: '/batch/actuator/prometheus'
-#    static_configs:
-#      - targets: ['monew-app-alb-721921608.ap-northeast-2.elb.amazonaws.com']
-#    scheme: http
-#
-#  - job_name: 'monew-monitor'
-#    metrics_path: '/monitor/actuator/prometheus'
-#    static_configs:
-#      - targets: ['monew-app-alb-721921608.ap-northeast-2.elb.amazonaws.com']
-#    scheme: http
-
-global:
-  scrape_interval: 10s  # 10초마다 메트릭 수집
 
 # (로컬용은 그대로 주석 유지)
+global:
+  scrape_interval: 10s  # 10초마다 메트릭 수집
 
 # 배포
 scrape_configs:

@@ -1,8 +1,6 @@
 package com.monew.monew_batch.article.job;
 
-import com.monew.monew_api.interest.entity.Interest;
 import com.monew.monew_api.interest.entity.Keyword;
-import com.monew.monew_api.interest.repository.InterestRepository;
 import com.monew.monew_api.interest.repository.KeywordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +14,7 @@ import java.util.List;
 @StepScope
 @RequiredArgsConstructor
 @Slf4j
-public class NaverNewsItemReader implements ItemReader<Keyword> {
+public class ArticleItemReader implements ItemReader<Keyword> {
 
     private final KeywordRepository keywordRepository;
     private List<Keyword> items;

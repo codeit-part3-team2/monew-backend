@@ -1,9 +1,9 @@
-package com.monew.monew_batch.article.job;
+package com.monew.monew_batch.article.job.processor;
 
 import com.monew.monew_api.article.entity.Article;
 import com.monew.monew_api.interest.entity.Keyword;
 import com.monew.monew_batch.article.dto.ArticleKeywordPair;
-import com.monew.monew_batch.article.properties.NaverApiProperties;
+import com.monew.monew_batch.article.properties.NaverProperties;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.item.ItemProcessor;
@@ -22,14 +22,14 @@ import java.util.*;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-public class NaverNewsItemProcessor implements ItemProcessor<Keyword, List<ArticleKeywordPair>> {
+public class NaverArticleItemProcessor implements ItemProcessor<Keyword, List<ArticleKeywordPair>> {
 
     private static final int DISPLAY_COUNT = 10;
     private static final String SORT_TYPE = "sim";
     private static final int REQUEST_DELAY_MS = 200;
 
     private final RestTemplate restTemplate;
-    private final NaverApiProperties properties;
+    private final NaverProperties properties;
 
     @Override
     public List<ArticleKeywordPair> process(Keyword keyword) {
@@ -50,7 +50,8 @@ public class NaverNewsItemProcessor implements ItemProcessor<Keyword, List<Artic
             String pubDateStr = (String) item.get("pubDate");
             LocalDateTime publishDate = parsePublishDate(pubDateStr);
 
-            Article article = new Article("Naver", link, title, publishDate, desc);
+            String articleSourceName = properties.getArticleSource().name();
+            Article article = new Article(articleSourceName, link, title, publishDate, desc);
             pairs.add(new ArticleKeywordPair(article, keyword));
         }
 

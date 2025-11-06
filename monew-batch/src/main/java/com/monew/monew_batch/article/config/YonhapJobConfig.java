@@ -1,12 +1,11 @@
-package com.monew.monew_batch.common.config;
+package com.monew.monew_batch.article.config;
 
 import com.monew.monew_api.interest.entity.Keyword;
 import com.monew.monew_batch.article.dto.ArticleKeywordPair;
-import com.monew.monew_batch.article.job.ArticleNotificationRequestListener;
-import com.monew.monew_batch.article.job.NaverNewsItemProcessor;
-import com.monew.monew_batch.article.job.NaverNewsItemReader;
-import com.monew.monew_batch.article.job.NaverNewsItemWriter;
-import com.monew.monew_batch.article.properties.NaverApiProperties;
+import com.monew.monew_batch.article.job.ArticleItemReader;
+import com.monew.monew_batch.article.job.ArticleItemWriter;
+import com.monew.monew_batch.article.job.processor.YonhapArticleItemProcessor;
+import com.monew.monew_batch.article.properties.YonhapProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
@@ -26,26 +25,23 @@ import java.util.List;
 @Configuration
 @EnableBatchProcessing
 @RequiredArgsConstructor
-@EnableConfigurationProperties(NaverApiProperties.class)
-public class NaverNewsJobConfig {
+@EnableConfigurationProperties(YonhapProperties.class)
+public class YonhapJobConfig {
 
-    private final NaverNewsItemReader reader;
-    private final NaverNewsItemProcessor processor;
-    private final NaverNewsItemWriter writer;
-    private final ArticleNotificationRequestListener listener;
+    private final ArticleItemReader reader; // 키워드 재사용
+    private final YonhapArticleItemProcessor processor;
+    private final ArticleItemWriter writer;
 
     @Bean
-    public Job naverNewsJob(JobRepository jobRepository, Step naverNewsStep) {
-        return new JobBuilder("naverNewsJob", jobRepository)
-                .start(naverNewsStep)
-                .listener(listener)
+    public Job yonhapRssJob(JobRepository jobRepository, Step yonhapRssStep) {
+        return new JobBuilder("yonhapRssJob", jobRepository)
+                .start(yonhapRssStep)
                 .build();
     }
 
     @Bean
-    public Step naverNewsStep(JobRepository jobRepository,
-                              PlatformTransactionManager transactionManager) {
-        return new StepBuilder("naverNewsStep", jobRepository)
+    public Step yonhapRssStep(JobRepository jobRepository, PlatformTransactionManager transactionManager) {
+        return new StepBuilder("yonhapRssStep", jobRepository)
                 .<Keyword, List<ArticleKeywordPair>>chunk(1, transactionManager)
                 .reader(reader)
                 .processor(processor)
@@ -54,11 +50,10 @@ public class NaverNewsJobConfig {
                 .build();
     }
 
-    @Bean
+    @Bean(name = "yonhapTaskExecutor")
     public TaskExecutor taskExecutor() {
-        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("naver-news-thread-");
+        SimpleAsyncTaskExecutor executor = new SimpleAsyncTaskExecutor("yonhap-news-thread-");
         executor.setConcurrencyLimit(2);
         return executor;
     }
-
 }

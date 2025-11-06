@@ -1,8 +1,8 @@
 package com.monew.monew_batch.article.repository;
 
 
-import com.monew.monew_api.article.dto.NewsBackupData;
-import com.monew.monew_api.article.dto.QNewsBackupData_ArticleData;
+import com.monew.monew_api.article.dto.ArticleBackupData;
+import com.monew.monew_api.article.dto.QArticleBackupData_ArticleData;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -27,9 +27,9 @@ public class ArticleBackupQueryRepositoryImpl implements ArticleBackupQueryRepos
     private final JPAQueryFactory queryFactory;
 
     @Override
-    public List<NewsBackupData.ArticleData> findAllArticlesForBackup() {
+    public List<ArticleBackupData.ArticleData> findAllArticlesForBackup() {
         return queryFactory
-                .select(new QNewsBackupData_ArticleData(
+                .select(new QArticleBackupData_ArticleData(
                         article.source,
                         article.sourceUrl,
                         article.title,
