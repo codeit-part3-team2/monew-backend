@@ -1,0 +1,7 @@
+FROM prom/prometheus:latest
+
+# Custom prometheus.yml 복사
+COPY monew-monitor/src/main/resources/prometheus.yml /etc/prometheus/prometheus.yml
+
+# 포트 노출
+EXPOSE 9090

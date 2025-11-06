@@ -1,0 +1,201 @@
+package com.monew.monew_api.comments.service;
+
+import com.monew.monew_api.article.entity.Article;
+import com.monew.monew_api.article.repository.ArticleRepository;
+import com.monew.monew_api.comments.dto.*;
+import com.monew.monew_api.comments.entity.Comment;
+import com.monew.monew_api.comments.entity.CommentLike;
+import com.monew.monew_api.comments.event.*;
+import com.monew.monew_api.comments.repository.CommentLikeRepository;
+import com.monew.monew_api.comments.repository.CommentRepository;
+import com.monew.monew_api.common.exception.comment.*;
+import com.monew.monew_api.user.User;
+import com.monew.monew_api.user.repository.UserRepository;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+@Transactional(readOnly = true)
+public class CommentService {
+
+	private final CommentRepository commentRepository;
+	private final CommentLikeRepository commentLikeRepository;
+	private final UserRepository userRepository;
+	private final ArticleRepository articleRepository;
+	private final ApplicationEventPublisher eventPublisher;
+
+	// 댓글 작성
+	@Transactional
+	public CommentDto register(CommentRegisterRequest request) {
+        log.info("[COMMENT][CREATE][START] userId={}, articleId={}", request.userId(), request.articleId());
+        User user = getUserById(request.userId());
+        Article article = getArticleById(request.articleId());
+
+		log.info("[COMMENT_COUNT] 댓글 작성 전 카운트: {}", article.getCommentCount());
+		Comment saved = commentRepository.save(Comment.of(user, article, request.content()));
+		log.info("[COMMENT][CREATE] userId={}, articleId={}, commentId={}",
+			user.getId(), article.getId(), saved.getId());
+
+		article.increaseCommentCount();
+		articleRepository.save(article);
+
+        eventPublisher.publishEvent(
+                CommentCreatedEvent.of(
+                        saved.getId(),
+                        saved.getArticleId(),
+                        article.getTitle(),
+                        saved.getUserId(),
+                        user.getNickname(),
+                        saved.getContent(),
+                        saved.getLikeCount(),
+                        saved.getCreatedAt())
+        );
+
+        log.info("[COMMENT_COUNT] 댓글 작성 후 카운트: {}", article.getCommentCount());
+        return CommentDto.from(saved, false);
+	}
+
+	// 댓글 수정
+	@Transactional
+	public CommentDto update(Long userId, Long commentId, CommentUpdateRequest request) {
+		log.info("[COMMENT][UPDATE][START] userId={}, commentId={}", userId, commentId);
+		Comment comment = getCommentById(commentId);
+		validateOwnership(comment, userId);
+
+		comment.updateContent(request.content());
+		log.info("[COMMENT][UPDATE] userId={}, commentId={}, contentLength={}",
+			userId, commentId, request.content().length());
+
+		boolean likedByMe = commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId);
+
+        eventPublisher.publishEvent(CommentContentEditedEvent.of(commentId, request.content()));
+
+		return CommentDto.from(comment, likedByMe);
+	}
+
+	// 댓글 좋아요
+	@Transactional
+	public CommentLikeDto like(Long userId, Long commentId) {
+		log.info("[COMMENT][LIKE] 좋아요 요청 시작 - userId={}, commentId={}", userId, commentId);
+		User user = getUserById(userId);
+		Comment comment = getCommentById(commentId);
+		log.info("[COMMENT][LIKE] 엔티티 조회 완료 - user={}, comment={}", user.getId(), comment.getId());
+		CommentLike saved = commentLikeRepository.save(CommentLike.of(user, comment));
+
+		eventPublisher.publishEvent(
+			CommentLikedEvent.of(
+                    saved.getId(),
+                    saved.getCreatedAt(),
+                    commentId,
+                    comment.getArticle().getId(),
+                    comment.getArticle().getTitle(),
+                    comment.getUserId(),
+                    comment.getUser().getNickname(),
+                    comment.getContent(),
+                    comment.getLikeCount(),
+                    comment.getCreatedAt(),
+                    user.getId(),
+                    user.getNickname()));
+
+        comment.increaseLike();
+		log.info("[COMMENT][LIKE] userId={}, commentId={}", userId, commentId);
+		return CommentLikeDto.from(saved);
+	}
+
+	// 댓글 좋아요 삭제
+	@Transactional
+	public void dislike(Long userId, Long commentId) {
+		log.info("[COMMENT][DISLIKE][START] userId={}, commentId={}", userId, commentId);
+		boolean liked = commentLikeRepository.existsByComment_IdAndUser_Id(commentId, userId);
+		if (!liked)
+			throw new CommentNotLikedException();
+
+		commentLikeRepository.deleteByComment_IdAndUser_Id(commentId, userId);
+		commentRepository.decLikeCount(commentId);
+
+        eventPublisher.publishEvent(CommentUnlikedEvent.of(commentId, userId));
+
+		log.info("[COMMENT][DISLIKE] userId={}, commentId={}", userId, commentId);
+	}
+
+	// 댓글 논리 삭제
+	@Transactional
+	public void delete(Long commentId) {
+		log.info("[COMMENT][DELETE][START] commentId={}", commentId);
+		Comment comment = getCommentById(commentId);
+
+		Article article = comment.getArticle();
+		log.info("[COMMENT_COUNT] 댓글 삭제 전 카운트: {}", article.getCommentCount());
+
+		commentRepository.delete(comment);
+
+        article.decreaseCommentCount();
+        articleRepository.save(article);
+        eventPublisher.publishEvent(CommentDeletedEvent.of(commentId));
+        log.info("[COMMENT_COUNT] 댓글 삭제 후 카운트: {}", article.getCommentCount());
+        log.info("[COMMENT][DELETE] commentId={}", commentId);
+    }
+
+	// 댓글 물리 삭제
+	@Transactional
+	public void hardDelete(Long commentId) {
+		log.info("[COMMENT][HARD_DELETE][START] commentId={}", commentId);
+		int deletedCount = commentRepository.hardDeleteById(commentId);
+		// 0 = 실패, 1 = 성공
+		if (deletedCount == 0) {
+			throw new CommentNotFoundException();
+		}
+		log.info("[COMMENT][HARD_DELETE] commentId={}, deletedCount={}", commentId, deletedCount);
+	}
+
+	// 댓글 전체 조회
+	public CursorPageResponseCommentDto findAll(
+		Long userId, CommentSearchRequest request
+	) {
+		log.info("[COMMENT][FIND_ALL][START] userId={}, articleId={}, orderBy={}, cursor={}, after={}, limit={}",
+			userId,
+			request.getArticleId(),
+			request.getOrderBy(),
+			request.getCursor(),
+			request.getAfter(),
+			request.getLimit()
+		);
+
+		return commentRepository.searchComments(
+			request.getArticleId(),
+			request.getOrderBy(),
+			request.getCursor(),
+			request.getAfter(),
+			request.getLimit(),
+			userId
+		);
+	}
+
+	// === 내부 유틸 ===
+
+	// 작성자 확인
+	private void validateOwnership(Comment comment, Long userId) {
+		if (!comment.isOwnedBy(userId))
+			throw new CommentForbiddenException();
+	}
+
+	// commentId 확인
+	private Comment getCommentById(Long commentId) {
+		return commentRepository.findById(commentId).orElseThrow(CommentNotFoundException::new);
+	}
+
+	// userId 확인
+	private User getUserById(Long userId) {
+		return userRepository.findById(userId).orElseThrow(CommentUserNotFoundException::new);
+	}
+
+	// articleId 확인
+	private Article getArticleById(Long articleId) {
+		return articleRepository.findById(articleId).orElseThrow(CommentArticleNotFoundException::new);
+	}
+}

@@ -1,0 +1,54 @@
+#global:
+#  scrape_interval: 10s  # 10초마다 메트릭 수집
+
+# local
+#scrape_configs:
+#  - job_name: 'monew-api'
+#    metrics_path: '/actuator/prometheus'
+#    static_configs:
+#      - targets: ['host.docker.internal:8080']
+#
+#  - job_name: 'monew-batch'
+#    metrics_path: '/actuator/prometheus'
+#    static_configs:
+#      - targets: ['host.docker.internal:8081']
+#
+#  - job_name: 'monew-monitor'
+#    metrics_path: '/actuator/prometheus'
+#    static_configs:
+#      - targets: ['host.docker.internal:8082']
+
+
+# (로컬용은 그대로 주석 유지)
+global:
+  scrape_interval: 10s  # 10초마다 메트릭 수집
+
+# 배포
+scrape_configs:
+  # 0) Prometheus 자기 자신 (프리픽스 사용하므로 metrics_path 변경)
+  - job_name: 'prometheus'
+    metrics_path: /prometheus/metrics
+    static_configs:
+      - targets: ['localhost:9090']
+    scheme: http
+
+  # 1) monew-api
+  - job_name: 'monew-api'
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ['monew-alb-721921608.ap-northeast-2.elb.amazonaws.com']
+    scheme: http
+
+  # 2) monew-batch
+  - job_name: 'monew-batch'
+    metrics_path: /batch/actuator/prometheus
+    static_configs:
+      - targets: ['monew-alb-721921608.ap-northeast-2.elb.amazonaws.com']
+    scheme: http
+
+  # 3) monew-monitor
+  - job_name: 'monew-monitor'
+    metrics_path: /monitor/actuator/prometheus
+    static_configs:
+      - targets: ['monew-alb-721921608.ap-northeast-2.elb.amazonaws.com']
+    scheme: http
