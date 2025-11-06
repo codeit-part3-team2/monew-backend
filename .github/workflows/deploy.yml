@@ -154,13 +154,28 @@ jobs:
           PORT="${{ matrix.service.port }}"
           TASK_DEF="${{ env.NEW_TASK_ARN }}"
 
-          # Network JSON (public subnets + monew-ecs-sg, public IP)
+          # Network JSON (public subnets + SGs[], public IP)
           IFS=',' read -r -a SUBNETS <<< "${{ env.PUBLIC_SUBNETS_CSV }}"
-          SUBNET_JSON=$(printf '"%s",' "${SUBNETS[@]}"); SUBNET_JSON="[${SUBNET_JSON%,}]"
+          SUBNET_JSON=$(printf '"%s",' "${SUBNETS[@]}")
+          SUBNET_JSON="[${SUBNET_JSON%,}]"
+
+          SGS_STR="${{ env.ECS_SERVICE_SG }}"  # 예: "sg-aaaa,sg-bbbb"
+          SG_JSON=$(jq -nc --arg s "$SGS_STR" '$s | split(",")')
+
           NET_JSON=$(jq -nc \
-            --argjson subnets "$SUBNET_JSON" \
-            --arg sg "${{ env.ECS_SERVICE_SG }}" \
-            '{awsvpcConfiguration:{subnets: $subnets, securityGroups: [$sg], assignPublicIp: "ENABLED"}}')
+          --argjson subnets "$SUBNET_JSON" \
+          --argjson sgs "$SG_JSON" \
+          '{
+              awsvpcConfiguration: {
+                subnets: $subnets,
+                securityGroups: $sgs,
+                assignPublicIp: "ENABLED"
+              }
+            }')
+
+          echo "Network: $NET_JSON"
+
+          
 
           LB_JSON=$(jq -nc \
             --arg tg "$TG_ARN" --arg cn "$CONTAINER" --argjson cp "$PORT" \
