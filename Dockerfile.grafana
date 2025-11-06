@@ -1,0 +1,145 @@
+name: CD - Deploy to ECS
+
+on:
+  push:
+    branches:
+      - release
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ap-northeast-2
+  ECS_CLUSTER: monew-cluster
+  # Public ECR 리포지토리
+  ECR_REPOSITORY: public.ecr.aws/s7e2q2h9/monew
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - name: api
+            dockerfile: Dockerfile.api
+            tag: monew-api
+            task_definition: monew-api-task
+            ecs_service: monew-api-service
+          - name: batch
+            dockerfile: Dockerfile.batch
+            tag: monew-batch
+            task_definition: monew-batch-task
+            ecs_service: monew-batch-service
+          - name: monitor
+            dockerfile: Dockerfile.monitor
+            tag: monew-monitor
+            task_definition: monew-monitor-task
+            ecs_service: monew-monitor-service
+          - name: prometheus
+            dockerfile: Dockerfile.prom
+            tag: prometheus
+            task_definition: monew-prometheus-task
+            ecs_service: monew-prometheus-service
+          - name: grafana
+            dockerfile: Dockerfile.grafana
+            tag: grafana
+            task_definition: monew-grafana-task
+            ecs_service: monew-grafana-service
+
+    steps:
+      # ========================================
+      # 1. 코드 체크아웃
+      # ========================================
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ========================================
+      # 2. Public ECR 로그인 (us-east-1)
+      # ========================================
+      - name: Configure AWS credentials for Public ECR
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: us-east-1  # Public ECR은 us-east-1만 사용
+
+      - name: Login to Public ECR
+        run: |
+          aws ecr-public get-login-password --region us-east-1 | \
+          docker login --username AWS --password-stdin public.ecr.aws
+
+      # ========================================
+      # 3. Docker 이미지 빌드 & 푸시
+      # ========================================
+      - name: Build and push ${{ matrix.service.name }} image
+        run: |
+          # 빌드
+          docker build \
+            -f ${{ matrix.service.dockerfile }} \
+            -t ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-${{ github.sha }} \
+            -t ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest \
+            .
+          
+          # 푸시
+          docker push ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-${{ github.sha }}
+          docker push ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest
+
+      # ========================================
+      # 4. ECS 배포 (ap-northeast-2)
+      # ========================================
+      - name: Configure AWS credentials for ECS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Stop ECS service (프리티어 최적화)
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ matrix.service.ecs_service }} \
+            --desired-count 0
+          
+          echo "Waiting for tasks to stop..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ matrix.service.ecs_service }}
+
+      - name: Update task definition
+        run: |
+          # 현재 태스크 정의 가져오기
+          TASK_DEFINITION=$(aws ecs describe-task-definition \
+            --task-definition ${{ matrix.service.task_definition }} \
+            --query 'taskDefinition')
+
+          # 새 이미지로 업데이트
+          NEW_TASK_DEFINITION=$(echo $TASK_DEFINITION | jq \
+            --arg IMAGE "${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest" \
+            '.containerDefinitions[0].image = $IMAGE | 
+             del(.taskDefinitionArn, .revision, .status, .requiresAttributes, .compatibilities, .registeredAt, .registeredBy)')
+
+          # 새 태스크 정의 등록
+          NEW_TASK_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "$NEW_TASK_DEFINITION" | \
+            jq -r '.taskDefinition.taskDefinitionArn')
+
+          echo "NEW_TASK_ARN=$NEW_TASK_ARN" >> $GITHUB_ENV
+
+      - name: Start ECS service
+        run: |
+          aws ecs update-service \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --service ${{ matrix.service.ecs_service }} \
+            --task-definition ${{ env.NEW_TASK_ARN }} \
+            --desired-count 1 \
+            --force-new-deployment
+
+          echo "✅ ${{ matrix.service.name }} service deployed!"
+
+      - name: Wait for service stability
+        run: |
+          echo "Waiting for service to be stable..."
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ matrix.service.ecs_service }}
+          
+          echo "🚀 ${{ matrix.service.name }} deployment completed!"
