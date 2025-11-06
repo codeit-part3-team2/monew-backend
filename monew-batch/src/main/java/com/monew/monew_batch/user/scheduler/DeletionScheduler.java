@@ -22,7 +22,8 @@ public class DeletionScheduler {
      * [요구사항] Soft delete 후 1일 경과한 사용자를 영구 삭제
      * [프로토타입] 5초마다 체크하여 5분 경과한 사용자 삭제
      */
-    @Scheduled(fixedDelay = 5000)
+    // @Scheduled(fixedDelay = 50000)
+    @Scheduled(cron = "0 10 5 * * *", zone = "Asia/Seoul")
     public void runUserDeletionJob() throws Exception {
         log.info("==== Starting User Deletion Job ====");
 

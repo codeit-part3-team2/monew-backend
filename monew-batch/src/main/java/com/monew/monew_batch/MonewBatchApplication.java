@@ -14,7 +14,11 @@ import java.util.TimeZone;
 		scanBasePackages = {
 				"com.monew.monew_batch",
 				"com.monew.monew_api.article.repository",
-		}
+		},
+	exclude = {
+		org.springframework.boot.autoconfigure.mongo.MongoAutoConfiguration.class,
+		org.springframework.boot.autoconfigure.data.mongo.MongoDataAutoConfiguration.class
+	}
 )
 @EntityScan(basePackages = "com.monew.monew_api")
 @EnableJpaRepositories(basePackages = "com.monew.monew_api")
