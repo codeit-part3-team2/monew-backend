@@ -8,7 +8,7 @@ on:
 
 env:
   AWS_REGION: ap-northeast-2
-  ECS_CLUSTER: monew-cluster
+  ECS_CLUSTER: monew-cluster-1
   ECR_REPOSITORY: public.ecr.aws/s7e2q2h9/monew
 
 jobs:
@@ -61,6 +61,9 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: us-east-1  # ⭐ Public ECR은 us-east-1만 사용
 
+      - name: Debug AWS caller identity
+        run: aws sts get-caller-identity --region ${{ env.AWS_REGION }}
+
       - name: Login to Public ECR
         run: |
           aws ecr-public get-login-password --region us-east-1 | \
@@ -92,6 +95,15 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
           aws-region: ${{ env.AWS_REGION }}  # ⭐ ECS는 ap-northeast-2
+      - name: Debug AWS caller identity (ECS creds)
+        run: aws sts get-caller-identity --region ${{ env.AWS_REGION }}
+
+      - name: Dry-run DescribeTaskDefinition (debug)
+        run: |
+          aws ecs describe-task-definition \
+            --task-definition ${{ matrix.service.task_definition }} \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' --output text      
 
       - name: Update task definition
         run: |
