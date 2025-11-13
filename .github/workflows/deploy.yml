@@ -1,0 +1,272 @@
+name: CD - Deploy to ECS
+
+on:
+  push:
+    branches: [ release ]
+  workflow_dispatch:
+
+env:
+  ECS_REGION: ap-northeast-2
+  ECR_PUBLIC_REGION: us-east-1
+
+  ECS_CLUSTER: monew-cluster-1
+  ECR_REPOSITORY: public.ecr.aws/s7e2q2h9/monew
+
+  PUBLIC_SUBNETS_CSV: subnet-00530329356c03add,subnet-008505c5a32cd0093,subnet-08601cd2c0aa46873,subnet-03f28f954846ad79d
+  ECS_SERVICE_SG: sg-0fbe8feeddc4e8195,sg-08a99e539bed73ed3
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        service:
+          - name: api
+            dockerfile: Dockerfile.api
+            tag: monew-api
+            task_definition: monew-api-task
+            ecs_service: monew-api-service
+            container: monew-api-app
+            port: 8080
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-api-target/188870153e8974df
+          - name: batch
+            dockerfile: Dockerfile.batch
+            tag: monew-batch
+            task_definition: monew-batch-task
+            ecs_service: monew-batch-service
+            container: monew-batch-app
+            port: 8081
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-batch-target/8c8fd5dc5924e8f6
+          - name: monitor
+            dockerfile: Dockerfile.monitor
+            tag: monew-monitor
+            task_definition: monew-monitor-task
+            ecs_service: monew-monitor-service
+            container: monew-monitor-app
+            port: 8082
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-monitor-target/f2041a48b08d9ef9
+          - name: prometheus
+            dockerfile: Dockerfile.prom
+            tag: prometheus
+            task_definition: monew-prometheus-task
+            ecs_service: monew-prometheus-service
+            container: monew-prometheus-app
+            port: 9090
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-prometheus-target/01ce4f2072a65a1f
+          - name: grafana
+            dockerfile: Dockerfile.grafana
+            tag: grafana
+            task_definition: monew-grafana-task
+            ecs_service: monew-grafana-service
+            container: monew-grafana-app
+            port: 3000
+            target_group_arn: arn:aws:elasticloadbalancing:ap-northeast-2:381437600029:targetgroup/monew-grafana-target/aece83e522ce15b5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ===== Public ECR (us-east-1) =====
+      - name: Configure AWS credentials for Public ECR
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ env.ECR_PUBLIC_REGION }}
+
+      - name: Debug AWS caller identity (ECR creds)
+        run: aws sts get-caller-identity --region ${{ env.ECR_PUBLIC_REGION }}
+
+      - name: Login to Public ECR
+        run: |
+          aws ecr-public get-login-password --region ${{ env.ECR_PUBLIC_REGION }} | \
+          docker login --username AWS --password-stdin public.ecr.aws
+
+      - name: Build and push ${{ matrix.service.name }} image
+        run: |
+          set -euo pipefail
+          docker build -f ${{ matrix.service.dockerfile }} \
+            -t ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-${{ github.sha }} \
+            -t ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest .
+          docker push ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-${{ github.sha }}
+          docker push ${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest
+
+      # ===== ECS (ap-northeast-2) =====
+      - name: Configure AWS credentials for ECS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_KEY }}
+          aws-region: ${{ env.ECS_REGION }}
+
+      - name: Debug AWS caller identity (ECS creds)
+        run: aws sts get-caller-identity --region ${{ env.ECS_REGION }}
+
+      - name: Dry-run DescribeTaskDefinition (debug)
+        run: |
+          set -euo pipefail
+          echo "Family: ${{ matrix.service.task_definition }}  Region: ${{ env.ECS_REGION }}"
+          aws ecs describe-task-definition \
+            --task-definition ${{ matrix.service.task_definition }} \
+            --region ${{ env.ECS_REGION }} \
+            --query 'taskDefinition.taskDefinitionArn' --output text
+
+      - name: Update task definition (swap image)
+        run: |
+          set -euo pipefail
+          FAMILY="${{ matrix.service.task_definition }}"
+          REGION="${{ env.ECS_REGION }}"
+          CNAME="${{ matrix.service.container }}"
+          IMAGE="${{ env.ECR_REPOSITORY }}:${{ matrix.service.tag }}-latest"
+
+          TD=$(aws ecs describe-task-definition \
+            --task-definition "$FAMILY" \
+            --region "$REGION" \
+            --query 'taskDefinition' --output json)
+
+          echo "== Before =="; echo "$TD" | jq '.containerDefinitions[] | {name,image}'
+
+          NEW_TD=$(echo "$TD" | jq \
+            --arg IMAGE "$IMAGE" --arg CNAME "$CNAME" '
+            .containerDefinitions |=
+            ( map( if .name == $CNAME then (.image = $IMAGE) else . end ) )
+            | del(.taskDefinitionArn, .revision, .status, .requiresAttributes,
+                  .compatibilities, .registeredAt, .registeredBy)')
+
+          echo "== After (preview) =="; echo "$NEW_TD" | jq '.containerDefinitions[] | {name,image}'
+
+          NEW_TASK_ARN=$(aws ecs register-task-definition \
+            --cli-input-json "$NEW_TD" \
+            --region "$REGION" \
+            --query 'taskDefinition.taskDefinitionArn' --output text)
+
+          echo "NEW_TASK_ARN=$NEW_TASK_ARN" >> $GITHUB_ENV
+          echo "Registered: $NEW_TASK_ARN"
+
+      - name: Create or Update ECS service (auto)
+        run: |
+          set -euo pipefail
+          CLUSTER="${{ env.ECS_CLUSTER }}"
+          SERVICE="${{ matrix.service.ecs_service }}"
+          REGION="${{ env.ECS_REGION }}"
+          TG_ARN="${{ matrix.service.target_group_arn }}"
+          CONTAINER="${{ matrix.service.container }}"
+          PORT="${{ matrix.service.port }}"
+          TASK_DEF="${{ env.NEW_TASK_ARN }}"
+
+          # --- Network (CLI shorthand: 배열 안전 전달) ---
+          IFS=',' read -r -a SUBNETS_ARR <<< "${{ env.PUBLIC_SUBNETS_CSV }}"
+          SUBNETS_SH=$(printf '%s,' "${SUBNETS_ARR[@]}"); SUBNETS_SH="[${SUBNETS_SH%,}]"
+
+          IFS=',' read -r -a SGS_ARR <<< "${{ env.ECS_SERVICE_SG }}"
+          SGS_SH=$(printf '%s,' "${SGS_ARR[@]}"); SGS_SH="[${SGS_SH%,}]"
+
+          NET_SH="awsvpcConfiguration={subnets=${SUBNETS_SH},securityGroups=${SGS_SH},assignPublicIp=ENABLED}"
+          echo "Network(shorthand): $NET_SH"
+
+          LB_JSON=$(jq -nc \
+            --arg tg "$TG_ARN" --arg cn "$CONTAINER" --argjson cp "$PORT" \
+            '[{targetGroupArn:$tg, containerName:$cn, containerPort:$cp}]')
+
+          DESC=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --region "$REGION" --output json || true)
+          FAIL_LEN=$(echo "$DESC" | jq -r '.failures | length // 0')
+          SVC_LEN=$(echo "$DESC"  | jq -r '.services | length // 0')
+          STATUS=$(echo "$DESC"   | jq -r '.services[0].status // empty')
+
+          # 배포 정책: Prometheus만 겹침 금지(0/100), 나머지는 기본(100/200)
+          if [ "$SERVICE" = "monew-prometheus-service" ]; then
+            DEPLOY_CONF='maximumPercent=100,minimumHealthyPercent=0'
+          else
+            DEPLOY_CONF='maximumPercent=200,minimumHealthyPercent=100'
+          fi
+
+          if [ "$FAIL_LEN" != "0" ] || [ "$SVC_LEN" = "0" ]; then
+            echo "🟢 Service not found → create-service"
+            aws ecs create-service \
+              --cluster "$CLUSTER" \
+              --service-name "$SERVICE" \
+              --task-definition "$TASK_DEF" \
+              --desired-count 1 \
+              --launch-type FARGATE \
+              --platform-version LATEST \
+              --deployment-configuration "$DEPLOY_CONF" \
+              --deployment-controller "type=ECS" \
+              --enable-execute-command \
+              --network-configuration "$NET_SH" \
+              --load-balancers "$LB_JSON" \
+              --region "$REGION"
+          else
+            if [ "$STATUS" != "ACTIVE" ]; then
+              echo "🟠 Service exists but status=$STATUS → delete & recreate"
+              aws ecs delete-service --cluster "$CLUSTER" --service "$SERVICE" --force --region "$REGION" || true
+              for i in {1..30}; do
+                sleep 10
+                D=$(aws ecs describe-services --cluster "$CLUSTER" --services "$SERVICE" --region "$REGION" --output json || true)
+                FL=$(echo "$D" | jq -r '.failures | length // 0')
+                SL=$(echo "$D" | jq -r '.services | length // 0')
+                [ "$FL" != "0" ] || [ "$SL" = "0" ] && break
+                echo "Waiting deletion..."
+              done
+              aws ecs create-service \
+                --cluster "$CLUSTER" \
+                --service-name "$SERVICE" \
+                --task-definition "$TASK_DEF" \
+                --desired-count 1 \
+                --launch-type FARGATE \
+                --platform-version LATEST \
+                --deployment-configuration "$DEPLOY_CONF" \
+                --deployment-controller "type=ECS" \
+                --enable-execute-command \
+                --network-configuration "$NET_SH" \
+                --load-balancers "$LB_JSON" \
+                --region "$REGION"
+            else
+              echo "🔵 Service ACTIVE"
+              if [ "$SERVICE" = "monew-prometheus-service" ]; then
+                echo "🧯 Prometheus: scale down to 0 first (avoid TSDB lock)"
+                aws ecs update-service \
+                  --cluster "$CLUSTER" \
+                  --service "$SERVICE" \
+                  --desired-count 0 \
+                  --region "$REGION"
+
+                # 모든 태스크 정지 대기
+                for i in {1..60}; do
+                  TASKS=$(aws ecs list-tasks --cluster "$CLUSTER" --service-name "$SERVICE" --region "$REGION" --query 'taskArns' --output json)
+                  if [ "$TASKS" = "[]" ]; then
+                    echo "All prometheus tasks stopped."
+                    break
+                  fi
+                  echo "Waiting prometheus tasks to stop..."
+                  sleep 5
+                done
+
+                echo "🔁 Update task def & scale up to 1"
+                aws ecs update-service \
+                  --cluster "$CLUSTER" \
+                  --service "$SERVICE" \
+                  --task-definition "$TASK_DEF" \
+                  --desired-count 1 \
+                  --force-new-deployment \
+                  --region "$REGION"
+              else
+                echo "🔁 Regular rolling update"
+                aws ecs update-service \
+                  --cluster "$CLUSTER" \
+                  --service "$SERVICE" \
+                  --task-definition "$TASK_DEF" \
+                  --desired-count 1 \
+                  --force-new-deployment \
+                  --region "$REGION"
+              fi
+            fi
+          fi
+
+      - name: Wait for service stability
+        run: |
+          set -euo pipefail
+          aws ecs wait services-stable \
+            --cluster ${{ env.ECS_CLUSTER }} \
+            --services ${{ matrix.service.ecs_service }} \
+            --region ${{ env.ECS_REGION }}
+          echo "🚀 ${{ matrix.service.name }} deployment completed!"

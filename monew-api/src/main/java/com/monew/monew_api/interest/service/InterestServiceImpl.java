@@ -106,8 +106,6 @@ public class InterestServiceImpl implements InterestService {
 
     Slice<Interest> slices = interestRepository.findAll(
         keyword, orderBy, direction, cursor, after, limit);
-    log.info("REQ userId={}, keyword={}, orderBy={}, direction={}, cursor={}, after={}, limit={}",
-        userId, keyword, orderBy, direction, cursor, after, limit);
 
     List<Interest> interests = slices.getContent();
 
@@ -126,9 +124,6 @@ public class InterestServiceImpl implements InterestService {
       boolean subscribedByMe = subscribedIds.contains(interest.getId());
       InterestDto dto = interestMapper.toInterestDto(interest, keywords, subscribedByMe,
           subscriberCount);
-
-      log.info("DBG dto id={}, name={}, subscriberCount={} subscribedByMe={}",
-          dto.id(), dto.name(), dto.subscriberCount(), dto.subscribedByMe());
       interestDtos.add(dto);
     }
 
