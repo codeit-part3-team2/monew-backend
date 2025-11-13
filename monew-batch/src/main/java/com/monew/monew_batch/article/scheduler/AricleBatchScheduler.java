@@ -35,8 +35,8 @@ public class AricleBatchScheduler {
         this.yonhapRssJob = yonhapRssJob;
     }
 
-//    @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
-    @Scheduled(fixedRate = 600000) // 테스트용
+    @Scheduled(cron = "0 0 * * * *", zone = "Asia/Seoul")
+//    @Scheduled(fixedRate = 600000) // 테스트용
     public void runJob() throws Exception {
         log.info("🕒 [Batch Scheduler] 뉴스 수집 Job 실행");
 

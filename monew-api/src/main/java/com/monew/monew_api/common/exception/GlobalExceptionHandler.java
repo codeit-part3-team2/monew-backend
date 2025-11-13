@@ -56,7 +56,12 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleUnexpectedException(Exception e, HttpServletRequest request) {
+    public ResponseEntity<ErrorResponse> handleUnexpectedException(Exception e, HttpServletRequest request) throws Exception {
+
+        if (request.getRequestURI().startsWith("/actuator")) {
+            throw e;
+        }
+
         log.error("[서버 내부 오류] 예외 타입: {}, 메시지: {}, URI: {}",
                 e.getClass().getSimpleName(),
                 e.getMessage(),

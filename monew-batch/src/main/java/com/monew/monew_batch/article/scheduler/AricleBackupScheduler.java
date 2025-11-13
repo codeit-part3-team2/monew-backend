@@ -19,8 +19,8 @@ public class AricleBackupScheduler {
 
     private final AricleBackupService aricleBackupService;
 
-//    @Scheduled(cron = "0 20 4 * * *", zone = "Asia/Seoul")
-    @Scheduled(fixedRate = 600000) // 테스트용
+    @Scheduled(cron = "0 20 4 * * *", zone = "Asia/Seoul")
+//    @Scheduled(fixedRate = 600000) // 테스트용
     public void backupNews() {
         log.info("🗄 뉴스 백업 시작");
         aricleBackupService.backupAllArticles();
